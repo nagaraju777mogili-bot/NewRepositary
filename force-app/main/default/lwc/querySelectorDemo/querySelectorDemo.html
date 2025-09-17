@@ -1,0 +1,9 @@
+<template>
+    <lightning-card icon-name="standard:account" variant="base" title="QuerySelectorDemo">
+       
+        <template if:true={usernames} for:each={usernames} for:item="user" for:index="index">
+           <div class="name" key={user}>{user}</div>
+        </template>
+        <lightning-button title="fetch users Data" onclick={fetchDetails} label="fetchDetails"></lightning-button>
+    </lightning-card>
+</template>

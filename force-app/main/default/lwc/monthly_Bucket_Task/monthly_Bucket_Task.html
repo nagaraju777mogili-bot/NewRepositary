@@ -1,0 +1,48 @@
+<!-- sldsValidatorIgnore -->
+<template>
+    <lightning-card title="Display Monthly Bucket Data">
+        <!--<lightning-layout horizontal-align="space">
+            <lightning-layout-item flexibility="auto" padding="around-small"  class="slds-col slds-size_3-of-12">
+        <lightning-input type="Date" label="Start Date" class="startDate"  onchange={handlechange} style="width:150px"></lightning-input>
+        <lightning-input type="Date" label="End Date" class="endDate" onchange={handlechange} style="width:150px"></lightning-input>
+    </lightning-layout-item>
+
+        
+        </lightning-layout>-->
+        <lightning-layout horizontal-align="space">
+            <lightning-layout-item flexibility="auto" padding="around-small"  class="slds-col slds-size_3-of-12">
+        <lightning-input type="text" label="Opportunity Name" value={opName}></lightning-input>
+        <lightning-input type="Date" label="Start Date" value={startDate} class="startDate"></lightning-input>
+        <lightning-input type="Date" label="Last Date" value={lastDate} class="lastDate"></lightning-input>
+    </lightning-layout-item>
+
+    <lightning-layout-item flexibility="auto" padding="around-small" class="slds-col slds-size_9-of-12">
+       
+            <div class="slds-box slds-p-around_none slds-m-top_x-small slds-m-bottom_medium slds-m-horizontal_none">
+
+            <template for:each={columns} for:item="field">
+                <lightning-layout-item key={field} size="9" flexibility="auto" padding="around-small">
+                   {field}
+                </lightning-layout-item>
+              </template>
+              </div>
+            <!-- <lightning-datatable key-field="id"
+              data={data}
+              columns={columns}
+            ></lightning-datatable> -->
+
+    </lightning-layout-item>
+    </lightning-layout>
+
+    <lightning-button 
+      variant="brand"
+      label="Get Monthly Buckets Data" 
+      title="Monthly Buckets" 
+      type="button"
+      onclick={CreateMonthlyBucketData} 
+      icon-name="utility:activity"
+      icon-position="center"
+     style="width:auto;text-align:center;padding: 10px;"
+    ></lightning-button>
+    </lightning-card>
+</template>

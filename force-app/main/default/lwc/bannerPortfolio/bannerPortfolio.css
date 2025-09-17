@@ -1,0 +1,28 @@
+.userPic{
+    border-radius: 50%;
+    width: 170px;
+    height: 170px;
+    padding-bottom: 8px;
+}
+.banner{
+    text-align:center;
+    background: #f7df04;
+    min-height: 100%;
+}
+.name{
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.job{
+    font-size: 18px;
+}
+.location{
+    font-size: 18px;
+    padding-bottom: 10px;
+}
+.imageSize{
+    height: 40px;
+    width: 40px;
+    margin: 16px 16px 0px 0px;
+}

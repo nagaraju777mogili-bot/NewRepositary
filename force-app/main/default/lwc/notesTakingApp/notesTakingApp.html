@@ -1,0 +1,42 @@
+<template>
+    <c-notification></c-notification>
+    <div class="app">
+        <div class="container" onclick={handlerclick}>
+            <div class="dotted-circle">
+                <lightning-icon icon-name='utility:add' alternative-text='add' size='large' title='add'></lightning-icon></div>
+                <h2>Add New Note</h2>
+            </div>
+
+              <template if:true={noteList} for:each={noteList} for:item="note">
+                <div class="slds-var-m-bottom_medium container" key={note.Id}>
+                    <header >
+                      <h2 class="slds-truncate">{note.Name}</h2>
+                    </header>
+                 <div class="notes">
+                     <c-append-html result={note.Description__c}></c-append-html>
+                    </div>
+                    <footer>
+                        <div class="date">{note.formattedDate}</div>
+                         <div class="buttons">
+                            <lightning-icon icon-name='action:edit' alternative-text='edit' size='xx_small' title='edit' class="edit-Icon slds-var-m-right_x-small" data-recordid ={note.Id} onclick={editNoteRecord} ></lightning-icon>
+                            <lightning-icon icon-name='action:delete' alternative-text='delete' size='xx_small' title='delete' class="delete-Icon slds-var-m-right_x-small" data-recordid ={note.Id} onclick={deleteNoteRecord}></lightning-icon>
+                        </div>
+                    </footer>
+                </div>
+              </template>
+         </div>
+
+          <template if:true={ismodal}>
+                <c-modal>
+                    <h1 slot="header" class="slds-modal__title">{ModalName}</h1> 
+                        <form>
+                          <lightning-input class="slds-var-m-bottom_medium" type="text" name="Name" value={noteRecord.Name} onchange={changeHandler} label="Title"></lightning-input>
+                          <lightning-input-rich-text value={noteRecord.Description__c} formats={formats} onchange={changeHandler} label="Description" name ="Description__c"></lightning-input-rich-text>
+                       </form>
+                       <footer slot="footer" class="footer">
+                            <button class="slds-button slds-button_neutral" aria-label="Cancel" onclick={closeModal}>Cancel</button>
+                            <button class="slds-button slds-button_brand" onclick={formsubmit} disabled={isFormInvalid}>Save</button>
+                       </footer>
+              </c-modal>
+          </template>
+</template>

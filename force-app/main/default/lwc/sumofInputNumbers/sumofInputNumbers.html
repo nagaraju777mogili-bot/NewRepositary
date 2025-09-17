@@ -1,0 +1,25 @@
+<!-- sldsValidatorIgnore -->
+<template>
+    <div class="slds-var-p-around_medium">
+        <lightning-card title="Enter input numbers">
+        <!-- <lightning-layout multiple-rows="false" > -->
+            
+            <template if:true={numbers} for:each= {numbers} for:item="num">
+                <tr key={num} >
+                    <td>
+                        <div >
+                            <lightning-input data-type="user-input" class="int"  value={num} onchange={showSum} ></lightning-input>
+                       </div>
+                    </td>
+                </tr>
+
+        </template>
+        <lightning-input value={tot} label="total"></lightning-input>
+        <lightning-input value={sum} label="sum"></lightning-input>
+
+        <!-- </lightning-layout> -->
+        <!-- <div class="map-root" lwc:dom="manual"></div> -->
+
+        </lightning-card>
+    </div>
+</template>

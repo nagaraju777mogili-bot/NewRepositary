@@ -1,0 +1,14 @@
+<template>
+     <lightning-card title="Account List using for:each" icon-name="custom:custom63">
+         <div class="slds-var-m-around_medium">
+             <template if:true={dataRecord.data}>
+                 <template for:each={dataRecord.data} for:item="acc">
+                     <p key={acc.Id}>{acc.Name}</p>
+                 </template>
+             </template>
+             <template if:true={dataRecord.error}>
+                 {accounts.error}
+             </template>
+         </div>
+     </lightning-card>
+ </template>

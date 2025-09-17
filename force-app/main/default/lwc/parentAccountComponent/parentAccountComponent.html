@@ -1,0 +1,47 @@
+<template>
+<lightning-card title="List of Contacts ">
+    <lightning-combobox
+        name="Accounts"
+        label="Accounts"
+        placeholder="Choose Account"
+        value={value}
+        onchange={handleChange}
+        options={statusOptions}>
+    </lightning-combobox> <br>
+    <lightning-button variant="Netral" label="Create Related Contact" title="Create Related Contact" onclick={createContact} class="slds-m-left_x-small"></lightning-button>
+    <lightning-button variant="brand" label="Display Account and Related Contacts" title="Display Account and Related Contacts" onclick={displayAccsandcons} class="slds-m-left_x-small"></lightning-button>
+        
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-label="Meaningful description of the modal content" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+               
+              <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse">
+            
+                <span class="slds-assistive-text">Cancel and close</span>
+              </button>
+              <div class="slds-modal__header">
+                <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Create the Contact Record for Account {selectedAccount}</h1>
+              </div>
+              <div class="slds-modal__content slds-p-around_medium slds-modal__content_headless" >
+    <lightning-input label="First Name" type="text" value={con.FirstName} class="string-input" onchange={handlechange}></lightning-input>
+    <lightning-input label="Last Name" type="text" value={con.LastName} class="string-input" onchange={handlechange}></lightning-input>
+    <lightning-input type="email" label="Email" value={con.Email} class="string-email" onchange={handlechange}></lightning-input>
+    <lightning-input type="tel" label="Phone" value={con.Phone} class="string-phone" onchange={handlechange}></lightning-input>
+</div>
+<div class="slds-modal__footer">
+  <button class="slds-button slds-button_neutral" aria-label="Cancel and close" onclick={cancel}>Cancel </button>
+  <button class="slds-button slds-button_brand" onclick={savecontact}>Save</button>
+</div>
+
+</div>
+</section>
+    
+    
+
+</template>
+
+    <c-child-contacts-component></c-child-contacts-component>
+
+
+</lightning-card>
+</template>

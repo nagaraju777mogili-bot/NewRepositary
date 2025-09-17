@@ -1,0 +1,21 @@
+<template>
+    <lightning-card
+    title="Lightning Record Picker"
+    class="slds-card__body_inner"
+    icon-name="standard:search">
+        <lightning-record-picker
+    label="Accounts"
+    placeholder="Search..."
+    onchange={handleChange}
+    display-info={displayInfo}
+    object-api-name="Account"
+    >
+</lightning-record-picker>
+</lightning-card>
+
+<template if:true={contacts}>
+    <template for:each={contacts} for:item="con">
+        <div key={con.Id}>{con.LastName} -- {con.FirstName} -- {con.Id}</div>
+    </template>
+</template>
+</template>

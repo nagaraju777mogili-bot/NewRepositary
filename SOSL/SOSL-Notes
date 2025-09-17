@@ -1,0 +1,143 @@
+Use the Salesforce Object Search Language (SOSL) to construct text-based search queries against the search index.
+
+When building efficient SOSL queries, create filters that are selective. Search analyzes all records in the index and by default, only the top 2,000 matched records are returned based on relevancy. This API supports pagination to fetch additional matches. Sharing is applied after the result set is returned from the search stack. If your filters aren’t selective and cause search term matches of more than 2000 records, there’s a possibility of running into search crowding.
+
+When to Use SOSL
+Use SOSL when you don’t know which object or field the data resides in, and you want to:
+Retrieve data for a specific term that you know exists within a field. Because SOSL can tokenize multiple terms within a field and build a search index from this, SOSL searches are faster and can return more relevant results.
+Retrieve multiple objects and fields efficiently where the objects might or might not be related to one another.
+Retrieve data for a particular division in an organization using the divisions feature.
+Retrieve data that’s in Chinese, Japanese, Korean, or Thai. Morphological tokenization for CJKT terms helps ensure accurate results.
+
+Performance Considerations
+If your searches are too general, they’re slow and return too many results. Use the following clauses to define efficient text searches.
+
+IN: Limits the types of fields to search, including email, name, or phone.
+LIMIT: Specifies the maximum number of rows to return.
+OFFSET: Displays the search results on multiple pages.
+RETURNING: Limits the objects and fields to return.
+WITH DATA CATEGORY: Specifies the data categories to return.
+WITH DivisionFilter: Specifies the division field to return.
+WITH NETWORK: Specifies the Experience Cloud site ID to return.
+WITH PricebookId: Specifies the price book ID to return.
+
+The search engine looks for matches to the search term across a maximum of 2,000 records (this limit starts with API version 28.0).
+If you query one object only, a maximum of 250 records are returned. To return up to 2,000 results, include either the WHERE clause or ORDER BY clause.
+If you query multiple objects, each object returns up to the minimum number between 2,000/n (where n=number of objects) and 250. For example, if you query 2 objects, the value of 2,000/2 is higher than 250, so up to 250 results are returned. If you query 10 objects, the value of 2,000/10 is lower than 250, so up to 200 results are returned.
+Admins (users with the View All Data permission) see the full set of results returned.
+For all other users, SOSL applies user permission filters. Individual users see only those records that they have access to. Results sets and order vary by the user issuing the search and can change throughout the day as records are added or removed from the index.
+
+SOSL Syntax
+A SOSL query begins with the required FIND clause. You can then add optional clauses to filter the query by object type, fields, data categories, and more. You can also determine what’s returned. For example, you can specify the order of the results and how many rows to return.
+After the required FIND clause, you can add one or more optional clauses in the following order.
+
+FIND {SearchQuery} 
+[ IN SearchGroup ]
+[ RETURNING FieldSpec [[ toLabel(fields)] [convertCurrency(Amount)] [FORMAT()]] ]
+[ WITH DivisionFilter ]
+[ WITH DATA CATEGORY DataCategorySpec ]
+[ WITH SNIPPET[(target_length=n)] ]
+[ WITH NETWORK NetworkIdSpec ]
+[ WITH PricebookId ]
+[ WITH METADATA ]
+[ LIMIT n ]
+
+[ UPDATE [TRACKING], [VIEWSTAT] ]
+
+
+Look for joe anywhere in the system. Return the IDs of the records where joe is found.
+
+FIND {joe}
+
+Look for the name Joe Smith in the name field of a lead, return the ID field of the records.
+FIND {Joe Smith}
+IN Name Fields
+RETURNING lead
+
+Look for the name Joe Smith in the name field of a lead and return the name and phone number.
+
+
+FIND {Joe Smith}
+IN Name Fields
+RETURNING lead(name, phone)
+
+
+
+SOSL Syntax
+Example Text Searches
+convertCurrency()
+FIND {SearchQuery}
+FORMAT()
+IN SearchGroup
+LIMIT n
+OFFSET n
+ORDER BY Clause
+RETURNING FieldSpec
+toLabel(fields)
+Update an Article’s Keyword Tracking with SOSL
+Update an Article’s Viewstat with SOSL
+USING Listview=
+WHERE
+WITH DATA CATEGORY DataCategorySpec
+WITH DivisionFilter
+WITH HIGHLIGHT
+WITH METADATA
+WITH NETWORK NetworkIdSpec
+WITH PricebookId
+WITH SNIPPET
+WITH SPELL_CORRECTION
+Salesforce Object Search Language (SOSL)
+/
+Example Text Searches
+Example Text Searches
+The following are examples of text searches that use SOSL.
+Look for joe anywhere in the system. Return the IDs of the records where joe is found.
+
+FIND {joe}
+Look for the name Joe Smith anywhere in the system, in a case-insensitive search. Return the IDs of the records where Joe Smith is found.
+
+FIND {Joe Smith}
+
+Look for the name Joe Smith in the name field of a lead, return the ID field of the records.
+
+FIND {Joe Smith}
+IN Name Fields
+RETURNING lead
+
+Look for the name Joe Smith in the name field of a lead and return the name and phone number.
+
+FIND {Joe Smith}
+IN Name Fields
+RETURNING lead(name, phone)
+
+
+Look for the name Joe Smith in the name field of a lead. Return the name and phone number of any matching record that was also created in the current fiscal quarter.
+
+FIND {Joe Smith}
+IN Name Fields
+RETURNING lead (name, phone Where createddate = THIS_FISCAL_QUARTER)
+
+
+Look for the name Joe Smith or Joe Smythe in the name field of a lead or contact and return the name and phone number. If a people record is called Joe Smith or Joe Smythe, that record isn’t returned.
+
+FIND {"Joe Smith" OR "Joe Smythe"}
+IN Name Fields
+RETURNING lead(name, phone), contact(name, phone)
+
+
+Search Terms
+A SearchQuery can contain:
+Single words, such as test or hello
+Phrases that include words and spaces surrounded by double quotes, such as "john smith"
+The search engine splits record information separated by spaces or punctuation into separate tokens. The search engine returns accurate search results from searches in East Asian languages that don't include spaces between words using morphological tokenization.
+
+Examples of IN Clauses
+Search Type	Examples
+No search group	FIND {MyProspect}
+ALL FIELDS	FIND {MyProspect} IN ALL FIELDS
+EMAIL FIELDS	FIND {mylogin@mycompany.com} IN EMAIL FIELDS
+NAME FIELDS	FIND {MyProspect} IN NAME FIELDS
+PHONE FIELDS	FIND {MyProspect} IN PHONE FIELDS
+SIDEBAR FIELDS	FIND {MyProspect} IN SIDEBAR FIELDS
+Invalid search	FIND {MyProspect} IN Accounts
+

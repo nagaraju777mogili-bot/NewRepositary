@@ -1,0 +1,6 @@
+<aura:component implements="flexipage:availableForRecordHome,flexipage:availableForAllPageTypes,force:hasRecordId" access="global" >
+	<force:recordData aura:id="forceRecord" 
+                      recordId="{!v.recordId}" 
+                      layoutType="FULL" 
+                      recordUpdated="{!c.recordUpdated}" />
+</aura:component>

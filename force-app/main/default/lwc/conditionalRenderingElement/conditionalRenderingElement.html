@@ -1,0 +1,11 @@
+<template>
+    <lightning-card title="Conditional Rendering">
+        <lightning-input type="checkbox" onchange={handleChange} label="ClickMe" name="ClickMe"></lightning-input>
+       <template if:true={showMe}>
+            I am  visible
+       </template>
+       <template if:false={showMe}>
+        I am not visible
+       </template>
+    </lightning-card>
+</template>

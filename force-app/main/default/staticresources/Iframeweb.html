@@ -1,0 +1,40 @@
+<html>
+  <div><b>Static Resource Component</b></div>
+<head>
+
+<script>
+  // Lightning origin where the LWC Component is hosted
+  const LIGHTNING_ORIGIN = "https://myowndatacom-dev-ed.develop.lightning.force.com";//"https://myowndatacom-dev-ed.develop.lightning.force.com/lightning/r/Case/";
+ 
+  // Post message from VF page to LWC
+  function postMessageToLWC() {
+    let txtmsg = document.getElementById("demo").value;
+    console.log('txtmsg===>',txtmsg);
+    window.parent.postMessage(txtmsg , LIGHTNING_ORIGIN);
+    console.log("📃 VF: Message sent",document.getElementById("demo").innerHTML);
+    
+  }
+
+  //  handle incoming message from LWC
+  window.addEventListener(
+    "message",
+    (event) => {
+      //  change the origin according to you
+        let receivedMsg =  event.data;
+        document.getElementById("output").innerHTML = event.data; 
+    },
+    false,
+  );
+</script>
+</head>
+
+<body style="width: 740px;">
+    <input type="text" label="Enter value to pass data to LWC" value="" id="demo" placeholder="Enter text"></input>
+
+
+    <button class="slds-button slds-button_brand" onclick="postMessageToLWC()">Post To LWC</button>
+
+    <output type="text" label="Recived Value from LWC CMP" id="output" ></output>
+</body>
+
+</html>

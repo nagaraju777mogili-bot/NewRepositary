@@ -1,0 +1,16 @@
+.res {
+    display: inline-flex;
+    flex-direction: column;
+		font-style : bold;
+  }
+.data{
+		letter-spacing : 30px;
+		border-bottom-left-radius :20px;
+}
+.text {
+  display: inline-block;
+  width: 10em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

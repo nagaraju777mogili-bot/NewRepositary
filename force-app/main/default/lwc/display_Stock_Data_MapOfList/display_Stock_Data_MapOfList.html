@@ -1,0 +1,38 @@
+<template>
+  <lightning-card>
+<table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered"  >
+    <thead>
+		<tr>
+        <th class="slds-grid_align-center" >
+        <div class="slds-truncate" title="Stock Name">Stock Name</div>
+      </th>
+      <th class="slds-grid_align-center" >
+        <div  title="Prices">Prices</div>
+      </th>
+    <!-- <th class="slds-grid_align-center" colspan="13">
+        <div class="slds-truncate" title="Prices">Profit Percentage</div>
+      </th> -->
+		</tr>
+ 
+		</thead>
+        <tbody>
+            <template for:each={mapkeyvaluestore} for:item="mapkey" for:index="index">
+                <tr key={mapkey.key} class="slds-hint-parent slds-line-height_reset">
+                    <th scope="row col">
+                     {mapkey.key}
+                    </th>
+                    <template for:each={mapkey.value} for:item="mapval" for:index="index1">												
+												<td  key = {mapval} class="slds-truncate">
+                            <div>{mapval.Open__c}</div>
+												 </td>
+                    </template>
+                </tr>
+						</template>
+        </tbody>
+        </table>
+    </lightning-card> 
+    
+    <!-- <lightning-datatable key-field="Stock_Name__c" data={mapkeyvaluestore} columns={columns}>
+
+    </lightning-datatable> -->
+</template>

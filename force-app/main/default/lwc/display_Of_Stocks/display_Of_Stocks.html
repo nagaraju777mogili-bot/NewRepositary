@@ -1,0 +1,39 @@
+<template>
+		<lightning-card class="data">
+				<template if:true={stocks} for:each={stocks} for:item="item" for:index="index">
+						<a href= "#" key={item.Stock_Name__c} onclick={showDetails}  class="res" id={item.Stock_Name__c} >
+								{item.Stock_Name__c}<br> &nbsp;</a>
+				</template>
+				
+
+	 <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-label="Meaningful description of the modal content" class="slds-modal slds-fade-in-open overflow: hidden">
+            <div class="slds-modal__container">
+              <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse">
+                <span class="slds-assistive-text">Cancel and close</span>
+              </button>
+			  
+              <div class="slds-modal__header">
+                <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">STOCK NAME : {stockName}</h1>
+              </div>
+             
+			 <div class="slds-modal__content slds-p-around_medium slds-modal__content_headless" >
+					<template for:each={singleStockData} for:item="item">
+					   <div class="text" key={item.Stock_Name__c}>
+							{item.ResponseDate__c} --	{item.High__c}</div>
+							<lightning-progress-bar value={item.High__c} size="small" key={item.Stock_Name__c}></lightning-progress-bar><br key={item}>
+					</template>
+					
+			</div>	
+				<div class="slds-modal__footer">
+			  <button class="slds-button slds-button_neutral" aria-label="Cancel and close" onclick={cancel}>Cancel </button>
+			  <button class="slds-button slds-button_brand" onclick={savecontact}>Save</button>
+			</div>
+		</div>
+			 </section>
+				</template>
+				
+	
+
+		</lightning-card>
+</template>

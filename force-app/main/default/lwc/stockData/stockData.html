@@ -1,0 +1,99 @@
+<template>
+               <!--<table >
+                 <tr> <b>The Total No.Of Records Retreived #{getcount} </b></tr> 
+                 <tr>
+                 <th>S.NO</th>  
+                    <th>Stock Name</th></tr>
+                 <template if:true={stocks} for:each={stocks} for:item="item" for:index="index" >
+                            <tr  key={item.Stock_Name__c}>
+                            <td>{index}</td>
+                            <td><a href= "#"  onclick={showDetails}  class="res" id={item.Stock_Name__c}>{item.Stock_Name__c}<br></a></td>
+                            </tr>     
+				    </template>
+                </table>
+
+              <lightning-card title="Stock Names && Profit Percentage" contextmenu={countsize}>
+                    <template for:each={mapData} for:item="keyValue" for:index="index">
+                        <tr key={keyValue.key}>
+                            <th scope="col">
+                                <div>{index}</div>
+                            </th>
+                            <th scope="col">
+                                <div ><a href= "#"  onclick={gettheData} class="res" id={keyValue.key}>{keyValue.key}</a></div>
+                            </th>
+                            <th scope="col">
+                                <div>{keyValue.value}</div>
+                            </th>
+                        </tr>
+                    </template>
+                </lightning-card>-->
+		 
+		      <lightning-card title="Stock Analysis Data">
+							<tr><b>The Total No.Of Records Retreived #{count} </b></tr>
+		 							<template for:each={stockData} for:item="keyValue" for:index="index">
+                        <tr key={keyValue}>
+                            <th scope="col">
+                                <div>{index}</div>
+                            </th>
+                            <th scope="col">
+                                <div ><a href= "#" onmouseleave={cancel} onmouseenter={gettheData} class="res" id={keyValue.Code__c}>{keyValue.Code__c}</a></div>
+                            </th>
+                            <th scope="col">
+                                <div>{keyValue.Profit_Percentage__c}</div>
+                            </th>
+                        </tr>
+                    </template>
+		       </lightning-card>
+		 
+		 
+		 		
+	
+ <div class="slds-modal__content slds-var-p-around_medium" >
+  <div onkeydown={handleKeyDown}>
+    <template if:true={isModalOpen}>
+             <section role="dialog" tabindex="-1" aria-modal="true" aria-label="Meaningful description of the modal content" class="slds-modal slds-fade-in-open" onkeyup={keyboardHandler} >
+                <div class="slds-modal__container">
+
+              <lightning-card icon-name="utility:chart">
+                    <template if:true={stockName}>
+                        <c-ad-root-chart chart-config={chartConfiguration1} ></c-ad-root-chart>
+                    </template>
+                </lightning-card>
+
+    	<div class="slds-modal__footer">
+			  <button class="slds-button slds-button_neutral" aria-label="Cancel and close" onclick={cancel}>Cancel </button>
+			  <button class="slds-button slds-button_brand" onclick={savecontact}>Save</button>
+			</div></div>
+            </section>
+        </section>
+    </template>					
+			</div>	
+        </div>
+</template> 
+
+
+
+ <!--<div class="slds-box slds-theme_default">
+        <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                <thead>
+                <tr class="slds-line-height_reset">
+                    <th class="" scope="col">
+                        Stock Prices on Monthly basis
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <template for:each={chartConfiguration1} for:item="obj">
+                    <tr class="slds-hint-parent" key={obj.ResponseDate__c}>
+                         <td data-label="ResponseDate__c">
+                            <div class="slds-cell-wrap">{obj.ResponseDate__c}</div>
+                        </td>
+                        <td data-label="Target">
+                            <div class="slds-cell-wrap">{obj.High__c}</div>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+        <div class="slds-var-p-top_x-small">Note : All files are scheduled for SFTP upload</div>
+    </div>-->

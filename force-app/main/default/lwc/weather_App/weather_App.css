@@ -1,0 +1,100 @@
+.app{
+    background: darkcyan;
+    min-height: 100vh;
+
+}
+.app-card{
+    background: #ffffff;
+    max-width: 400px;
+    min-width: 375px;
+    border-radius: 8px;
+  }
+  .flex-center{
+        align-items: center;
+        justify-content: center;
+        display: flex;
+    }
+    input{
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border-color: blue;
+            text-align: center; 
+    }
+    button{
+        width: 100%;
+        border-radius: 8px;
+        padding: 11px;
+        background: orange;
+        color: white;
+    }
+
+    .success-msg{
+            text-align: center;
+            margin: 15px;
+            color: darkgreen;
+            background: lightgoldenrodyellow;
+            border: solid;
+            border-radius: 6px;
+            padding: 8px;
+    }
+    .error-msg{
+        text-align: center;
+        margin: 15px;
+        color: royalblue;
+        background: lightgoldenrodyellow;
+        border: solid;
+        border-radius: 6px;
+        width: fit-content;
+        padding: 8px;
+    }
+    .temperature{
+        text-align: center;
+        font-size: 16px;
+        font-weight: 700;
+        padding: 4px;
+    }
+    .inner-temp{
+        font-size: 45px;
+    }
+    footer{
+    display: flex;
+    justify-content: space-around;
+    text-align:center;
+    border-top: 2px solid cadetblue;
+
+    }
+.feels-like{
+    width:100%;
+    padding: 16px;
+}
+.humidity{
+    width:100%;
+    padding:20px;
+    border-left: 2px solid slateblue;
+}
+.could-Icon{
+    margin: auto;
+    display: flex;
+    width: 70px;
+    height: 55px;
+}
+.feel-Icon{
+    width: 30px;
+    height: 35px;
+    padding-right: 5px;
+    
+}
+.header{
+    padding: 15px;
+    padding-left: 80px;
+    border-bottom: solid 2px green;
+    display:flex;
+}
+
+.head-p{
+    padding-left: 19px;
+}
+.cursor{
+    cursor: pointer;
+}

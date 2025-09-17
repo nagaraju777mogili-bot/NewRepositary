@@ -1,0 +1,85 @@
+.app{
+    min-height: 100vh;
+    background-color: #458fe3;
+    padding:16px;
+    display: flex;
+    margin: 5px;
+    margin-right: 12px;
+    flex-wrap: wrap;
+
+}
+.footer{
+    width: fit-content;
+    border-top-right-radius: 10px;
+    border-top-left-radius: 10px;
+    justify-content: right;
+    background-color: #ffffff;
+}
+.container{
+    width: 280px;
+    height:280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:#ffffff;
+    border-radius: 16px;
+    flex-flow: column;
+    cursor: pointer;
+    margin-right: 12px;
+
+    flex-direction: column;
+}
+.dotted-circle{
+    border-radius: 50%;
+    padding: 16px;
+    border: 4px dotted lightseagreen;
+}
+h2{
+    font-size: 20px;
+    font-weight: 700;
+    padding-top: 12px;
+}
+header{
+    background:rgb(9, 80, 104);
+    color: orange;
+    padding: 4px 16px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    text-align: center;
+    width: 280px;
+  }
+
+.notes{
+   height: 221px;
+  overflow: auto;
+  padding: 4px 16px;
+}
+footer{
+    display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 16px;
+      background: var(--light-gray);
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      background-color: #cecece;
+      width: 280px;
+  }
+  .date{
+    color: var(--dark-gray);
+      font-size: 14px;
+      font-style: italic;
+  }
+.edit-Icon{
+    --slds-c-button-color-background : rgb(10, 10, 72);
+    --slds-c-button-brand-text-color : white;
+}
+.delete-Icon{
+    --slds-c-button-color-background : rgb(193, 6, 6);
+    --slds-c-button-brand-text-color : white;
+
+}
+.buttons{
+    display: flex;
+    margin: auto;
+}

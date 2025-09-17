@@ -1,0 +1,14 @@
+<template>
+    <a href="#" onclick={handleclick}>
+        <template lwc:if={accounts.data}>
+            <template for:each={accounts.data} for:item="acc">
+                <lightning-layout multiple-rows key={acc.Id}>
+                    <lightning-layout-item size="12" small-device-size="6" medium-device-size="4" large-device-size="4" padding="around-small">
+                        {acc.Name}
+                    </lightning-layout-item>
+                    </lightning-layout>
+                    </template>
+        </template>
+       
+    </a>
+</template>
