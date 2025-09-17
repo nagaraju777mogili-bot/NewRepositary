@@ -1,0 +1,135 @@
+==> Need to know about the polymorphic relationship SOQL queries
+==> Need to Practice on Group By 
+
+Get all contacts for accounts that have an opportunity with a particular record type.
+Get all open opportunities for accounts that have active contracts.
+Get all open cases for contacts that are the decision maker on an opportunity.
+Get all accounts that don’t have any open opportunities.
+Get All account IDs for all accounts that don’t have any open opportunities:
+Get All account IDs for the opportunitity'\'s amount >1000000
+
+============================================================================
+
+1. Retrieve All Accounts with Their Related Contacts Who Have Not Logged In for 90+ Days
+
+-> [SELECT Account.Name,
+       Name,
+       Email,
+       LastLoginDate
+FROM Contact
+WHERE LastLoginDate <= LAST_N_DAYS:90];
+
+
+==>If you also want Account fields, but only for those that have such Contacts:
+[SELECT Id,Name,
+        (SELECT Email,LastModifiedDate  FROM CONTACTS WHERE LastModifiedDate  <= LAST_N_DAYS :90)
+  FROM ACCOUNT
+        WHERE Id IN 
+        (SELECT AccountId FROM Contact WHERE LastModifiedDate  <= LAST_N_DAYS : 90)]
+
+==>If Login Info is Stored on User Object 
+
+SELECT Account.Name,
+       Name,
+       Email,
+       (SELECT Username, LastLoginDate FROM Users WHERE LastLoginDate <= LAST_N_DAYS:90)
+FROM Contact
+WHERE Id IN (
+    SELECT ContactId FROM User WHERE LastLoginDate <= LAST_N_DAYS:90
+)
+
+==============================================================================================================
+2. Get Opportunities Closed This Year With Products That Have a Quantity > 10
+
+==> [SELECT Id,Quantity, OpportunityId FROM OpportunityLineItem 
+        WHERE Quantity > 10 AND OpportunityId IN (
+            SELECT Id FROM Opportunity WHERE StageName = 'Closed Won' AND 
+                        closeDate = THIS_YEAR 
+        )
+     ]
+
+     SELECT Opportunity.Name,
+       Opportunity.CloseDate,
+       Opportunity.StageName,
+       Opportunity.Amount,
+       Quantity,
+       TotalPrice,
+       PricebookEntry.Product2.Name
+FROM OpportunityLineItem
+WHERE Quantity > 10
+  AND Opportunity.IsClosed = TRUE
+  AND CALENDAR_YEAR(Opportunity.CloseDate) = THIS_YEAR
+
+
+======================================================================================================================
+
+3. Find Users Who Have Not Created Any Records in the Last 60 Days
+
+SELECT Id, Name 
+FROM User 
+WHERE Id NOT IN (
+    SELECT CreatedById 
+    FROM Opportunity 
+    WHERE CreatedDate >= LAST_N_DAYS:60
+)
+
+SELECT Id, Name 
+FROM User 
+WHERE Id NOT IN (
+    SELECT CreatedById FROM Opportunity WHERE CreatedDate >= LAST_N_DAYS:60
+)
+AND Id NOT IN (
+    SELECT CreatedById FROM Contact WHERE CreatedDate >= LAST_N_DAYS:60
+)
+AND Id NOT IN (
+    SELECT CreatedById FROM Case WHERE CreatedDate >= LAST_N_DAYS:60
+)
+
+======================================================================================================
+4. Aggregate Total Opportunity Amount by Account and Only Show Accounts with Sum > $500,000
+
+SELECT AccountId, SUM(Amount)amt
+FROM Opportunity
+GROUP BY AccountId
+HAVING SUM(Amount)> 500,000
+
+=======================================================================================================
+
+5. Get Top 5 Accounts by Number of Open Opportunities
+
+SELECT AccountId, COUNT(Id) numOpenOpps
+FROM Opportunity
+WHERE IsClosed = FALSE
+GROUP BY AccountId
+ORDER BY COUNT(Id) DESC
+LIMIT 5
+
+
+SELECT Id, Name
+FROM Account
+WHERE Id IN (
+    SELECT AccountId
+    FROM Opportunity
+    WHERE IsClosed = FALSE
+    GROUP BY AccountId
+    ORDER BY COUNT(Id) DESC
+    LIMIT 5
+)
+========================================================================================================
+6.Get all contacts for accounts that have an opportunity with a particular record type.
+
+SELECT Id, FirstName, LastName, AccountId 
+FROM Contact  
+WHERE AccountId IN (
+    SELECT AccountId 
+    FROM Opportunity 
+    WHERE RecordTypeId = '012XXXXXXXXXXXX'  -- Replace with actual RecordTypeId
+)
+=========================================================================================================================
+7. This example query returns accounts with duplicate names.
+
+SELECT Name, Count(Id)
+FROM Account
+GROUP BY Name
+HAVING Count(Id) > 1
+=======================================================================================================================

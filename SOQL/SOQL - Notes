@@ -1,0 +1,956 @@
+Using the queryString parameter of a SOAP API query() call. See query() in the SOAP API Developer Guide.
+Using the q parameter of a REST API query request. See Query in the REST API Developer Guide.
+Using Apex statements. See SOQL and SOSL Queries in the Apex Developer Guide.
+Using Visualforce controllers and getter methods. See Controller Methods in the Visualforce Developer Guide.
+Using the Salesforce CLI. See force:data:soql:query in the data Commands topic of the Salesforce CLI Command Reference.
+
+
+Quoted String Escape Sequences
+SOQL defines several escape sequences that are valid in queries so that you can include special characters in your queries. You can escape new lines, carriage returns, tabs, quotes, and more. The escape character for SOQL is the backslash (\) character.
+You can use the following escape sequences with SOQL:
+
+Sequence	Meaning
+\n or \N	New line
+\r or \R	Carriage return
+\t or \T	Tab
+\b or \B	Bell
+\f or \F	Form feed
+\"	One double-quote character
+\'	One single-quote character
+\\	Backslash
+LIKE expression only: \_	Matches a single underscore character ( _ )
+LIKE expression only:\%	Matches a single percent sign character ( % )
+\uXXXX	A Unicode character with XXXX as the code (for example, \u00e9 represents the é character)
+If you use a backslash character in any other context, an error occurs.
+
+Escaped Character Examples
+SELECT Id FROM Account WHERE Name LIKE 'Ter%'
+Select all accounts whose name begins with the three character sequence 'Ter'.
+SELECT Id FROM Account WHERE Name LIKE 'Ter\%'
+Select all accounts whose name exactly matches the four character sequence 'Ter%'.
+SELECT Id FROM Account WHERE Name LIKE 'Ter\%%'
+Select all accounts whose name begins with the four character sequence 'Ter%'
+
+===================================================================================================================
+Reserved Characters
+The single quote (’) and backslash (\) characters are reserved in SOQL queries and must be preceded by a backslash to be properly interpreted.
+Reserved characters, if specified in a SELECT clause as a literal string (between single quotes), must be escaped (preceded by the backslash \ character) to be properly interpreted. An error occurs if you do not precede reserved characters with a backslash.
+
+SELECT Id
+FROM Account
+WHERE Name LIKE 'Bob\'s BBQ'
+
+===================================================================================================================
+Alias Notation
+You can use alias notation in SELECT queries.
+SELECT count()
+FROM Contact c, c.Account a
+WHERE a.name = 'MyriadPubs'
+To establish the alias, first identify the object, in this example a contact, and then specify the alias, in this case “c.” For the rest of the SELECT statement, you can use the alias in place of the object or field name.
+
+The following are SOQL keywords that can’t be used as alias names: AND, ASC, DESC, EXCLUDES, FIRST, FROM, GROUP, HAVING, IN, INCLUDES, LAST, LIKE, LIMIT, NOT, NULL, NULLS, OR, SELECT, USING, WHERE, WITH
+
+====================================================================================================================
+
+You can include any of these in the field list:
+
+FIELDS(ALL)—select all the fields of an object.
+FIELDS(CUSTOM)—select all the custom fields of an object.
+FIELDS(STANDARD)—select all the standard fields of an object.
+In each case, FIELDS() respects field-level security so it only shows the fields that you have permission to access.
+
+SELECT
+   Account.Name, 
+   (SELECT FIELDS(ALL) FROM Account.Contacts LIMIT 200)
+FROM Account
+
+====================================================================================================================
+Salesforce CLI Example
+sf data query --target-org DevHub --query "SELECT FIELDS(STANDARD) FROM Account"
+
+=====================================================================================================================
+If FIELDS() returns a large amount of data, use one of these methods to retrieve all the pages of results:
+
+In SOQL, if you use OFFSET and LIMIT in your query, the number of records returned may be less than LIMIT. Check the number of results that were returned and adjust OFFSET, as required. Do not just increment OFFSET by LIMIT
+
+==========================================================================================================================
+TYPEOF
+TYPEOF is an optional clause that can be used in a SELECT statement of a SOQL query when you’re querying data that contains polymorphic relationships. A TYPEOF expression specifies a set of fields to select that depend on the runtime type of the polymorphic reference.
+
+[TYPEOF typeOfField
+        {WHEN whenObjectType THEN whenFieldList}[...]
+        [ELSE elseFieldList]
+    END][...]
+
+If you need to query multiple polymorphic relationship fields, you can use more than one TYPEOF expression in a single SELECT statement.
+
+You can provide as many WHEN clauses as needed, one per object type. The ELSE clause is optional and used if the object type for the polymorphic relationship field in the current record doesn’t match any of the object types in the provided WHEN clauses. The syntax specific to TYPEOF is as follows.
+
+Syntax	Description
+typeOfField -->	A polymorphic relationship field in objectType or a polymorphic field in a parent of objectType that can reference multiple object types. typeOfField cannot reference a relationship field that is also referenced in the fieldList of a SELECT statement.
+whenObjectType -->	An object type for the given WHEN clause. When the SELECT statement runs, each object type associated with the polymorphic relationship field specified in the typeOfField expression is checked for a matching object type in a WHEN clause.
+whenFieldList -->	A list of one or more fields, separated by commas, that you want to retrieve from the specified whenObjectType. These are fields in the referenced object type or paths to related object fields, not fields in the primary object type for the SELECT statement.
+elseFieldList -->	A list of one or more fields, separated by commas, that you want to retrieve if none of the WHEN clauses match the object type associated with the polymorphic relationship field specified in typeOfField. This list may only contain fields valid for the Name object type, or paths to related object fields in Name.
+
+TYPEOF isn’t allowed in the SELECT clause of a semi-join query. You can use TYPEOF in the SELECT clause of an outer query that contains semi-join queries. The following example is not valid because TYPEOF is used in the semi-join query:
+
+SELECT Name FROM Account
+WHERE CreatedById IN
+    (
+    SELECT 
+        TYPEOF Owner
+            WHEN User THEN Id
+            WHEN Group THEN CreatedById
+        END
+    FROM CASE
+    )
+
+==> The following example is valid because TYPEOF is only used in the outer SELECT clause:
+SELECT 
+    TYPEOF What
+        WHEN Account THEN Phone
+        ELSE Name
+    END
+FROM Event
+WHERE CreatedById IN
+    (
+    SELECT CreatedById
+    FROM Case
+    )
+
+==> TYPEOF can’t be used in queries with GROUP BY, GROUP BY ROLLUP, GROUP BY CUBE, and HAVING.
+
+SELECT 
+  TYPEOF What
+    WHEN Account THEN Phone, NumberOfEmployees
+    WHEN Opportunity THEN Amount, CloseDate
+    ELSE Name, Email
+  END
+FROM Event
+
+==========================================================================================================
+USING SCOPE
+The optional USING SCOPE clause of a SOQL query returns records within a specified scope. For example, you can limit the records to return only objects that the user owns or only records in the user’s territory.
+
+
+Scope	     Description
+delegated	=> Filter for records delegated to another user for action. For example, a query could filter for only delegated Task records.
+everything	=> Filter for all records.
+mine	    => Filter for records owned by the user running the query.
+mine_and_my_groups	=> Filter for records assigned to the user running the query and the user’s queues. If a user is assigned to a queue, the user can access records in the queue. This filter applies only to the ProcessInstanceWorkItem object.
+my_territory	=> Filter for records in the territory of the user running the query. This option is available if territory management is enabled for your organization.
+my_team_territory =>	Filter for records in the territory of the team of the user running the query. This option is available if territory management is enabled for your organization.
+scopingRule	=> Filter for records based on the applicable scoping rule. This option is available if an admin has activated at least one scoping rule on the object that you’re querying.
+team	=> Filter for records assigned to a team, such as an Account team.
+
+Ex :     SELECT Id, Subject FROM Task USING SCOPE Delegated
+
+            SELECT Id, Name FROM Case USING SCOPE Team
+
+                SELECT Id, Name FROM Account USING SCOPE Mine
+
+========================================================================================================
+LIKE	Like	Expression is true if the value in the fieldName matches the characters of the text string in the specified value. The text string in the specified value must be enclosed in single quotes.
+The LIKE operator is supported for string fields only. The operator provides a mechanism for matching partial text strings and includes support for:
+
+.
+The % and _ wildcards.
+The % wildcard matches zero or more characters.
+The _ wildcard matches exactly one character.
+The escaping of special characters % or _.
+===================================================================================================================================
+INCLUDES EXCLUDES		Applies only to multi-select picklists
+
+SELECT Id, MSP1__c FROM CustObj__c WHERE MSP1__c = 'AAA;BBB'
+SELECT Id, MSP1__c from CustObj__c WHERE MSP1__c includes ('AAA;BBB','CCC')
+
+==========================================================================================================================================
+Semi-Joins with IN and Anti-Joins with NOT IN
+A semi-join is a subquery on another object in an IN clause to restrict the records returned. 
+An anti-join is a subquery on another object in a NOT IN clause to restrict the records returned. 
+You can create more complex queries by replacing the list of values in the IN or NOT IN clause with a subquery. The subquery can filter by ID (primary key) or reference (foreign key) fields.
+
+The following objects aren’t currently supported in subqueries:
+ActivityHistory
+Attachments
+Event
+Note
+OpenActivity
+Tags (AccountTag, ContactTag, and all other tag objects)
+Task
+===========================================================================================================================
+NOT ==> There’s also a comparison operator NOT IN, which is different from this logical operator
+SELECT Name FROM Account WHERE AnnualRevenue > 0 AND (NOT Type = 'Prospect')
+
+Date Formats and Date Literals in WHERE
+The fieldExpression of a WHERE clause supports filtering query results based on date and dateTime fields.
+
+==========================================================================================================================
+Date Literal	Range	Example
+YESTERDAY	Starts at 12:00:00 AM on the day before the current day and continues for 24 hours.	|| SELECT Id FROM Account WHERE CreatedDate = YESTERDAY
+TODAY	Starts at 12:00:00 AM on the current day and continues for 24 hours.	|| SELECT Id FROM Account WHERE CreatedDate < TODAY
+TOMORROW	Starts at 12:00:00 AM. on the day after the current day and continues for 24 hours.|| 	SELECT Id FROM Opportunity WHERE CloseDate = TOMORROW
+LAST_WEEK	Starts at 12:00:00 AM on the first day of the week before the current week and continues for seven days. || 	SELECT Id FROM Account WHERE CreatedDate > LAST_WEEK
+THIS_WEEK	Starts at 12:00:00 AM on the first day of the current week and continues for seven days.	|| SELECT Id FROM Account WHERE CreatedDate < THIS_WEEK
+NEXT_WEEK	Starts at 12:00:00 AM on the first day of the week after the current week and continues for seven days.|| 	SELECT Id FROM Opportunity WHERE CloseDate = NEXT_WEEK
+LAST_MONTH	Starts at 12:00:00 AM on the first day of the month before the current month and continues for all the days of that month.	|| SELECT Id FROM Opportunity WHERE CloseDate > LAST_MONTH
+THIS_MONTH	Starts at 12:00:00 AM on the first day of the current month and continues for all the days of that month.|| 	SELECT Id FROM Account WHERE CreatedDate < THIS_MONTH
+NEXT_MONTH	Starts at 12:00:00 AM on the first day of the month after the current month and continues for all the days of that month.|| 	SELECT Id FROM Opportunity WHERE CloseDate = NEXT_MONTH
+LAST_90_DAYS	Starts at 12:00:00 AM 90 days before the current day and continues up to the current second. (The range includes today. Using this date value includes records from 91 days ago up to the current day.)	|| SELECT Id FROM Account WHERE CreatedDate = LAST_90_DAYS
+NEXT_90_DAYS	Starts at 12:00:00 AM on the next day and continues for 90 days. The range doesn’t include today.	|| SELECT Id FROM Opportunity WHERE CloseDate > NEXT_90_DAYS
+LAST_N_DAYS:n	Starts at 12:00:00 AM n days before the current day and continues up to the current second. (The range includes today. Using this date value includes records from n + 1 days ago up to the current day.) In standard filters, n can be 7, 30, 60, 90, or 120.|| 	SELECT Id FROM Account WHERE CreatedDate = LAST_N_DAYS:365
+NEXT_N_DAYS:n	For standard date filters, starts at 12:00:00 AM on the next day and continues for n days. The range doesn’t include today. In standard filters, n can be 7, 30, 60, 90, or 120. || SELECT Id FROM Opportunity WHERE CloseDate > NEXT_N_DAYS:15
+N_DAYS_AGO:n	Starts at 12:00:00 AM on the day n days before the current day and continues for 24 hours. (The range doesn’t include today.)	|| SELECT Id FROM Opportunity WHERE CloseDate = N_DAYS_AGO:25
+NEXT_N_WEEKS:n	Starts at 12:00:00 AM on the first day of the week after the current week and continues for n times seven days.|| 	SELECT Id FROM Opportunity WHERE CloseDate > NEXT_N_WEEKS:4
+LAST_N_WEEKS:n	Starts at 12:00:00 AM on the first day of the week that started n weeks before the current week, and continues up to 11:59 PM on the last day of the week before the current week.|| 	SELECT Id FROM Account WHERE CreatedDate = LAST_N_WEEKS:52
+N_WEEKS_AGO:n	Starts at 12:00:00 AM on the first day of the week that started n weeks before the start of the current week and continues for seven days.	|| SELECT Id FROM Opportunity WHERE CloseDate = N_WEEKS_AGO:3
+NEXT_N_MONTHS:n	Starts at 12:00:00 AM on the first day of the month after the current month and continues until the end of the nth month.|| 	SELECT Id FROM Opportunity WHERE CloseDate > NEXT_N_MONTHS:2
+LAST_N_MONTHS:n	Starts at 12:00:00 AM on the first day of the month that started n months before the current month and continues up to 11:59 PM on the last day of the month before the current month. || 	SELECT Id FROM Account WHERE CreatedDate = LAST_N_MONTHS:12
+N_MONTHS_AGO:n	Starts at 12:00:00 AM on the first day of the month that started n months before the start of the current month and continues for all the days of that month.|| 	SELECT Id FROM Opportunity WHERE CloseDate = N_MONTHS_AGO:6
+THIS_QUARTER	Starts at 12:00:00 AM on the first day of the current calendar quarter and continues to the end of the quarter.|| 	SELECT Id FROM Account WHERE CreatedDate = THIS_QUARTER
+LAST_QUARTER	Starts at 12:00:00 AM on the first day of the calendar quarter before the current calendar quarter and continues to the end of that quarter.|| 	SELECT Id FROM Account WHERE CreatedDate = LAST_QUARTER
+NEXT_QUARTER	Starts at 12:00:00 AM on the first day of the calendar quarter after the current calendar quarter and continues to the end of that quarter.	|| SELECT Id FROM Account WHERE CreatedDate < NEXT_QUARTER
+NEXT_N_QUARTERS:n	Starts at 12:00:00 AM on the first day of the calendar quarter after the current quarter and continues to the end of the calendar quarter n quarters in the future. (The range doesn’t include the current quarter.)|| 	SELECT Id FROM Account WHERE CreatedDate < NEXT_N_QUARTERS:2
+LAST_N_QUARTERS:n	Starts at 12:00:00 AM on the first day of the calendar quarter n quarters ago and continues to the end of the calendar quarter before the current quarter. (The range doesn’t include the current quarter.)	|| SELECT Id FROM Account WHERE CreatedDate = LAST_N_QUARTERS:2
+N_QUARTERS_AGO:n	Starts at 12:00:00 AM on the first day of the calendar quarter n quarters before the current calendar quarter and continues to the end of that quarter.	|| SELECT Id FROM Opportunity WHERE CloseDate = N_QUARTERS_AGO:3
+THIS_YEAR	Starts at 12:00:00 AM on January 1 of the current year and continues through the end of December 31 of the current year.	|| SELECT Id FROM Opportunity WHERE CloseDate = THIS_YEAR
+LAST_YEAR	Starts at 12:00:00 AM on January 1 of the year before the current year and continues through the end of December 31 of that year.|| 	SELECT Id FROM Opportunity WHERE CloseDate > LAST_YEAR
+NEXT_YEAR	Starts at 12:00:00 AM on January 1 of the year after the current year and continues through the end of December 31 of that year.	|| SELECT Id FROM Opportunity WHERE CloseDate < NEXT_YEAR
+NEXT_N_YEARS:n	Starts at 12:00:00 AM on January 1 of the year after the current year and continues through the end of December 31 of the nth year.|| 	SELECT Id FROM Opportunity WHERE CloseDate = NEXT_N_YEARS:5
+LAST_N_YEARS:n	Starts at 12:00:00 am on January 1, n+1 years ago. The range ends on December 31 of the year before the current year.	|| SELECT Id FROM Opportunity WHERE CloseDate = LAST_N_YEARS:5
+N_YEARS_AGO:n	Starts at 12:00:00 AM on January 1 of the calendar year n years before the current calendar year and continues through the end of December 31 of that year.	|| SELECT Id FROM Opportunity WHERE CloseDate = N_YEARS_AGO:2
+THIS_FISCAL_QUARTER	Starts at 12:00:00 AM on the first day of the current fiscal quarter and continues through the end of the last day of the current fiscal quarter. The fiscal quarter is defined on the Fiscal Year page in Setup.|| 	SELECT Id FROM Account WHERE CreatedDate = THIS_FISCAL_QUARTER
+LAST_FISCAL_QUARTER	Starts at 12:00:00 AM on the first day of the fiscal quarter before the current fiscal quarter and continues through the last day of that fiscal quarter. The fiscal quarter is defined on the Fiscal Year page in Setup.|| SELECT Id FROM Account WHERE CreatedDate > LAST_FISCAL_QUARTER
+NEXT_FISCAL_QUARTER	Starts at 12:00:00 AM on the first day of the fiscal quarter after the current fiscal quarter and continues through the last day of that fiscal quarter. (The range doesn’t include the current quarter.) The fiscal quarter is defined on the Fiscal Year page in Setup.	|| SELECT Id FROM Account WHERE CreatedDate < NEXT_FISCAL_QUARTER
+NEXT_N_FISCAL_​QUARTERS:n	Starts at 12:00:00 AM on the first day of the fiscal quarter after the current fiscal quarter and continues through the end of the last day of the nth fiscal quarter. (The range doesn’t include the current fiscal quarter.) The fiscal quarter is defined on the Fiscal Year page in Setup.	||SELECT Id FROM Account WHERE CreatedDate = NEXT_N_FISCAL_QUARTERS:6
+LAST_N_FISCAL_​QUARTERS:n	Starts at 12:00:00 AM on the first day of the fiscal quarter n fiscal quarters ago and continues through the end of the last day of the previous fiscal quarter. (The range doesn’t include the current fiscal quarter.) The fiscal quarter is defined on the Fiscal Year page in Setup.	||SELECT Id FROM Account WHERE CreatedDate > LAST_N_FISCAL_QUARTERS:6
+N_FISCAL_QUARTERS_AGO:n	Starts at 12:00:00 AM on the first day of the fiscal quarter n fiscal quarters before the current fiscal quarter and continues through the end of the last day of that fiscal quarter.||	SELECT Id FROM Opportunity WHERE CloseDate = N_FISCAL_QUARTERS_AGO:6
+THIS_FISCAL_YEAR	Starts at 12:00:00 AM on the first day of the current fiscal year and continues through the end of the last day of the fiscal year. The fiscal quarter is defined on the Fiscal Year page in Setup.	||SELECT Id FROM Opportunity WHERE CloseDate = THIS_FISCAL_YEAR
+LAST_FISCAL_YEAR	Starts at 12:00:00 AM on the first day of the fiscal year before the current fiscal year and continues through the end of the last day of that fiscal year. The fiscal quarter is defined on the Fiscal Year page in Setup.	|| SELECT Id FROM Opportunity WHERE CloseDate > LAST_FISCAL_YEAR
+NEXT_FISCAL_YEAR	Starts at 12:00:00 AM on the first day of the fiscal year after the current fiscal year and continues through the end of the last day of that fiscal year. The fiscal quarter is defined on the Fiscal Year page in Setup.	|| SELECT Id FROM Opportunity WHERE CloseDate < NEXT_FISCAL_YEAR
+NEXT_N_FISCAL_​YEARS:n	Starts at 12:00:00 AM on the first day of the fiscal year after the current fiscal year and continues through the end of the last day of the nth fiscal year. (The range doesn’t include the current fiscal year.) The fiscal quarter is defined on the Fiscal Year page in Setup.||	SELECT Id FROM Opportunity WHERE CloseDate = NEXT_N_FISCAL_YEARS:3
+LAST_N_FISCAL_​YEARS:n	Starts at 12:00:00 AM on the first day of the fiscal year n fiscal years ago and continues through the end of the last day of the fiscal year before the current fiscal year. (The range doesn’t include the current fiscal year.) The fiscal quarter is defined on the Fiscal Year page in Setup. ||	SELECT Id FROM Opportunity WHERE CloseDate = LAST_N_FISCAL_YEARS:3
+N_FISCAL_YEARS_AGO:n	Starts at 12:00:00 AM on the first day of the fiscal year n fiscal years ago and continues through the end of the last day of that fiscal year.	SELECT Id FROM Opportunity WHERE CloseDate = N_FISCAL_YEARS_AGO:3
+
+===========================================================================================================================================================
+Filter on Polymorphic Relationship Fields
+
+You can search polymorphic relationship fields on a SOQL query. A polymorphic relationship is one where the current object can be one of several object types.
+To filter on a polymorphic relationship field, use the Type qualifier.
+
+WHERE polymorphicRelationship.Type comparisonExpression
+
+Syntax	                Description
+polymorphicRelationship	A polymorphic relationship field in object being queried that can reference multiple object types. For example, the Who relationship field of a Task can be a Contact or a Lead.
+comparisonExpression	The comparison being made against the object type in the polymorphic relationship. For more information, see fieldExpression syntax . Note that type names returned by Type are string values, like ‘User’.
+
+SELECT Id
+FROM Event
+WHERE What.Type IN ('Account', 'Opportunity')
+
+SELECT Id
+FROM Event
+WHERE Who.Type IN ('Contact', 'User')
+============================================================================================================================================================
+Query Multi-Select Picklists
+You can search for individual values in multi-select picklists, which are regularly used in client applications.
+
+The following query filters on values in the MSP1__c field that are equal to AAA and BBB selected (exact match):
+
+SELECT Id, MSP1__c FROM CustObj__c WHERE MSP1__c = 'AAA;BBB'
+
+==>SELECT Id, MSP1__c from CustObj__c WHERE MSP1__c includes ('AAA;BBB','CCC')
+AAA and BBB selected.
+CCC selected.
+=========================================================================================================================================================================
+Use null in WHERE
+==>This example query returns the account IDs of all events with a non-null activity date.
+SELECT AccountId
+FROM Event
+WHERE ActivityDate != null
+================================================================================================================================================
+WITH
+
+You can filter records based on field values, for example, to filter according to category or to query and retrieve changes that are tracked in a user’s profile feed by using WITH filteringExpression. This optional clause can be added to a SELECT statement of a SOQL query.
+Unlike the WHERE clause, which only supports fields from the object specified in the FROM clause, WITH allows you to filter by other related criteria. For example, you can use the WITH clause to filter articles based on their classification in one or more data category groups. The WITH clause can only be used in the following cases:
+
+To filter records based on their categorization. See WITH DATA CATEGORY.
+To query and retrieve record changes tracked in a user profile feed. See Custom Object__Feed in the Object Reference for the Salesforce Platform.
+To filter records based on user access permissions on fields or objects being queried within Apex code. See Filter SOQL Queries Using WITH SECURITY_ENFORCED in the Apex Developer Guide.
+To specify user mode access for Apex database operations. Apex code runs in system mode by default, which means that it runs with substantially elevated permissions over the user running the code. To enhance the security context of Apex, you can specify user mode access by using WITH USER_MODE. Field-level security (FLS) and object permissions of the running user are respected in user mode, unlike in system mode. User mode always applies sharing rules, but in system mode they’re controlled by sharing keywords on the class. See Enforce User Mode for Database Operations in the Apex Developer Guide.
+=================================================================================================================================================
+GROUP BY
+You can use the GROUP BY option in a SOQL query to avoid iterating through individual query results. That is, you specify a group of records instead of processing many individual records.
+You can use GROUP BY with aggregate functions, such as SUM() or MAX(), to summarize the data and enable you to roll up query results rather than having to process the individual records in your code.
+
+[GROUP BY fieldGroupByList]
+
+You can use a GROUP BY clause without an aggregated function to query all the distinct values, including null, for an object. The following query returns the distinct set of values stored in the LeadSource field.
+
+SELECT LeadSource
+FROM Lead
+GROUP BY LeadSource
+
+==============================================================================================================================
+GROUP BY ROLLUP
+
+Use the GROUP BY ROLLUP optional clause in a SOQL query to add subtotals for aggregated data in query results. 
+This action enables the query to calculate subtotals so that you don’t have to maintain that logic in your code.
+You can use GROUP BY ROLLUP with aggregate functions, such as SUM() and COUNT(fieldName).
+
+A query with a GROUP BY ROLLUP clause returns the same aggregated data as an equivalent query with a GROUP BY clause. It also returns multiple levels of subtotal rows. You can include up to three fields in a comma-separated list in a GROUP BY ROLLUP clause.
+
+The GROUP BY ROLLUP clause adds subtotals at different levels, aggregating from right to left through the list of grouping columns. The order of rollup fields is important. A query that includes three rollup fields returns the following rows for totals:
+
+First-level subtotals for each combination of fieldName1 and fieldName2. Results are grouped by fieldName3.
+Second-level subtotals for each value of fieldName1. Results are grouped by fieldName2 and fieldName3.
+One grand total row.
+
+SELECT LeadSource, COUNT(Name) cnt
+FROM Lead
+GROUP BY ROLLUP(LeadSource)
+
+SELECT Status, LeadSource, COUNT(Name) cnt
+FROM Lead
+GROUP BY ROLLUP(Status, LeadSource)
+
+=======================================================================================================================
+GROUP BY CUBE
+Use the GROUP BY CUBE clause in a SOQL query to add subtotals for all combinations of a grouped field in the query results. This action is useful for compiling cross-tabular reports of data. For example, you can create a cross-tabular query to calculate a sum, an average, or another aggregate function and then group the results by two sets of values: one horizontally, the other, vertically.
+You can use GROUP BY CUBE with aggregate functions, such as SUM() and COUNT(fieldName).
+
+[GROUP BY CUBE (fieldName[,...])]
+
+A query with a GROUP BY CUBE clause returns the same aggregated data as an equivalent query with a GROUP BY clause. It also returns additional subtotal rows for each combination of fields specified in the comma-separated grouping list, as well as a grand total. You can include up to three fields in a GROUP BY CUBE clause.
+
+SELECT Type, BillingCountry,
+    GROUPING(Type) grpType, GROUPING(BillingCountry) grpCty,
+    COUNT(id) accts
+FROM Account
+GROUP BY CUBE(Type, BillingCountry)
+ORDER BY GROUPING(Type), GROUPING(BillingCountry)
+=====================================================================================================================
+Use Aliases with GROUP BY
+
+ou can use an alias for any field or aggregated field in a SELECT statement in a SOQL query. Use a field alias to identify the field when you’re processing the query results in your code.
+Specify the alias directly after the associated field. For example, the following query contains two aliases: n for the Name field, and max for the MAX(Amount) aggregated field
+
+SELECT Name n, MAX(Amount) max
+FROM Opportunity
+GROUP BY Name
+
+
+In this example, MAX(Amount) has an implied alias of expr0, and MIN(Amount) has an implied alias of expr1.
+
+SELECT Name, MAX(Amount), MIN(Amount)
+FROM Opportunity
+GROUP BY Name
+
+In this query, MIN(Amount) has an explicit alias of min, MAX(Amount) has an implied alias of expr0, and SUM(Amount) has an implied alias of expr1.
+
+SELECT Name, MAX(Amount), MIN(Amount) min, SUM(Amount)
+FROM Opportunity
+GROUP BY Name
+
+======================================================================================================================
+Identify Subtotals with GROUP BY
+
+When you use the GROUP BY ROLLUP or GROUP BY CUBE clause in a SOQL query to add the subtotals, you can identify whether the row is a subtotal for a field using the GROUPING(fieldName) function.
+If you are iterating through the query result to create a report or chart of the data, you have to distinguish between aggregated data and subtotal rows. You can use GROUPING(fieldName) to do this. Using GROUPING(fieldName) is more important for interpreting your results when you have more than one field in your GROUP BY ROLLUP or GROUP BY CUBE clause. It is the best way to differentiate between aggregated data and subtotals.
+
+This example query returns subtotals for combinations of the LeadSource and Rating fields. GROUPING(LeadSource) indicates if the row is an aggregated row for the LeadSource field, and GROUPING(Rating) does the same for the Rating field.
+
+SELECT LeadSource, Rating,
+    GROUPING(LeadSource) grpLS, GROUPING(Rating) grpRating,
+    COUNT(Name) cnt
+FROM Lead
+GROUP BY ROLLUP(LeadSource, Rating)
+
+The order of the fields listed in the GROUP BY ROLLUP clause is important. For example, if you are more interested in getting subtotals for each Rating instead of for each LeadSource, switch the field order to GROUP BY ROLLUP(Rating, LeadSource).
+=============================================================================================================================
+HAVING 
+
+HAVING is an optional clause that can be used in a SOQL query to filter results that aggregate functions return.
+You can use a HAVING clause with a GROUP BY clause to filter the results returned by aggregate functions, such as SUM(). The HAVING clause is similar to a WHERE clause. The difference is that you can include aggregate functions in a HAVING clause, but not in a WHERE clause.
+
+Similar to a WHERE clause, the HAVING clause supports all the comparison operators, such as =, in conditional expressions, which can contain multiple conditions using the logical AND, OR, and NOT operators.
+
+havingConditionExpression specifies one or more conditional expressions using aggregate functions to filter the query results.
+
+For example, you can use a GROUP BY clause to determine how many leads are associated with each LeadSource value with the following query:
+
+SELECT LeadSource, COUNT(Name)
+FROM Lead
+GROUP BY LeadSource
+HAVING COUNT(Name) > 100
+
+===========================================================================================================================
+This example query returns accounts with duplicate names.
+
+SELECT Name, Count(Id)
+FROM Account
+GROUP BY Name
+HAVING Count(Id) > 1
+
+===========================================================================================================================
+ORDER BY
+Use the optional ORDER BY clause in the SELECT statement of a SOQL query to control the order of the query results, such as alphabetically beginning with z. If records are null, you can use ORDER BY to display the empty records first or last.
+
+Syntax	      Description
+ASC or DESC	 => Specifies whether the results are ordered in ascending (ASC) or descending (DESC) order. Default order is ascending.
+NULLS FIRST or NULLS LAST	=> Orders null records at the beginning (NULLS FIRST) or end (NULLS LAST) of the results. By default, null values are sorted first.
+===============================================
+
+SELECT Name
+FROM Account
+ORDER BY Name DESC NULLS LAST
+
+================================================
+
+SELECT Name
+FROM Account
+WHERE industry = 'media'
+ORDER BY BillingPostalCode ASC NULLS LAST LIMIT 125
+
+===========================================================================================================================
+OFFSET
+When expecting many records in a query’s results, you can display the results in multiple pages by using the OFFSET clause on a SOQL query. For example, you can use OFFSET to display records 51–75 and then jump to displaying records 301–350. Using OFFSET is an efficient way to handle large results sets.
+Use OFFSET to specify a starting row in the result set returned by a query. Because the offset calculation is done on the server and only the result subset is returned, using OFFSET is more efficient than retrieving the full result set and then filtering the results locally.
+
+As an example, if a SOQL query normally returned 100 rows, you could use OFFSET 10 in your query to skip the first 10 rows. The result set for the example query would be a subset of the full result set, returning rows 11 through 110 of the full set.
+
+SELECT Name
+FROM Merchandise__c
+WHERE Price__c > 5.0
+ORDER BY Name
+LIMIT 100
+OFFSET 10
+
+OFFSET is intended to be used in a top-level query, and is not allowed in most subqueries, so the following query is invalid and returns a MALFORMED_QUERY error:
+The maximum offset is 2,000 rows. Requesting an offset greater than 2,000 results in a NUMBER_OUTSIDE_VALID_RANGE error.
+
+A subquery can use OFFSET only if the parent query has a LIMIT 1 clause. The following query is a valid use of OFFSET in a subquery:
+
+SELECT Name, Id,
+    (
+        SELECT Name FROM Opportunities LIMIT 10 OFFSET 2
+    )
+FROM Account
+ORDER BY Name
+LIMIT 1
+
+
+We recommend using an ORDER BY clause when you use OFFSET to ensure that the result set ordering is consistent. The row order of a result set that does not have an ORDER BY clause has a stable ordering, however the ordering key is subject to change and should not be relied on.
+We recommend using a LIMIT clause with OFFSET if you need to retrieve subsequent subsets of the same result set. For example, you could retrieve the first 100 rows of a query using the following:
+
+SELECT Name, Id
+FROM Merchandise__c
+ORDER BY Name
+LIMIT 100
+OFFSET 0
+
+===============================================================================================================
+FOR VIEW and FOR REFERENCE
+
+FOR VIEW
+Use the optional FOR VIEW clause in a SOQL query to update objects with information about when they were last viewed.
+
+When the FOR VIEW clause is used with a query, two things happen:
+The LastViewedDate field for the retrieved record is updated.
+A record is added to the RecentlyViewed object to reflect the recently viewed data for the retrieved record.
+This example SOQL query retrieves a contact and uses FOR VIEW to update the last viewed date of the retrieved contact. The same statement both retrieves the record and updates its last viewed date.
+
+FOR REFERENCE
+Use the optional FOR REFERENCE in a SOQL query to notify Salesforce when a record is referenced from a custom interface, such as in a mobile application or from a custom page.
+
+A record is referenced every time a related record is viewed. For example, when a user views an account record, all related records (such as contacts, owner, leads, opportunities) are referenced.
+
+When the FOR REFERENCE clause is used with a query, two things happen:
+The LastReferencedDate field is updated for any retrieved records.
+A record is added to the RecentlyViewed object to reflect the recently referenced data for each retrieved record.
+This example SOQL query retrieves a contact and uses FOR REFERENCE to update the LastReferencedDate field of the retrieved contact.
+
+SELECT Name, ID FROM Contact  LIMIT 1 FOR REFERENCE
+
+Use the FOR VIEW and FOR REFERENCE clauses only when you are sure that the retrieved records will definitely be viewed by the logged-in user, else the clause incorrectly updates the usage information for the records. Also, the user won’t recognize any incorrectly updated records when they display in the recent items and the global search auto-complete lists.
+The RecentlyViewed object is updated every time the logged-in user views or references a record. It is also updated when records are retrieved using the FOR VIEW or FOR REFERENCE clause in a SOQL query. To ensure that the most recent data is available, RecentlyViewed data is periodically truncated down to 200 records per object. RecentlyViewed data is retained for 90 days, after which it is removed on a periodic basis.
+
+===========================================================================================================================
+UPDATE
+
+Track keywords that are used in Salesforce Knowledge article searches by using the UPDATE TRACKING optional clause. 
+Determine how many hits a Salesforce Knowledge article has had by using the UPDATE VIEWSTAT optional clause.
+
+Update an Article’s Keyword Tracking with SOQL
+UPDATE TRACKING is an optional clause that can be added to a SELECT statement of a SOQL query to report on article searches and views. Developers can use UPDATE TRACKING to track the keywords that are used in Salesforce Knowledge article searches.
+
+SELECT Title FROM FAQ__kav
+WHERE Keyword='Apex' and
+Language = 'en_US' and
+KnowledgeArticleVersion = 'ka230000000PCiy'
+UPDATE TRACKING
+
+========================================================================================================
+Update an Article Viewstat with SOQL
+
+The UPDATE VIEWSTAT clause is used in a SELECT statement to report on Salesforce Knowledge article searches and views. You can get a view count for every article that you have access to online. Developers can use UPDATE VIEWSTAT to update an article’s view statistics.
+
+You can use this syntax to increase the view count for every article you have access to online.
+
+SELECT Title FROM Knowledge__kav
+   WHERE PublishStatus='online' and
+   Language = 'en_US' and
+   KnowledgeArticleVersion = 'ka230000000PCiy'
+   UPDATE VIEWSTAT
+
+======================================================================================================================================
+FOR UPDATE
+In Apex, you can use FOR UPDATE to lock sObject records while they’re being updated in order to prevent race conditions and other thread safety problems.
+While an sObject record is locked, no other client or user is allowed to make updates either through code or the Salesforce user interface. The client locking the records can perform logic on the records and make updates with the guarantee that the locked records won’t be changed by another client during the lock period. The lock gets released when the transaction completes.   
+
+You can’t use the ORDER BY clause in any SOQL query that uses locking.
+
+To lock a set of sObject records in Apex, embed the keywords FOR UPDATE after any inline SOQL statement.
+ This example queries for two accounts and also locks the accounts that are returned.
+
+ Account [] accts = [SELECT Id FROM Account LIMIT 2 FOR UPDATE];    
+
+ ===========================================================================================================================
+SOQL SELECT Functions
+Use functions in SOQL queries to generate reports for analysis, apply localized formatting to standard and custom fields, group or filter data by date periods, and more.
+
+Functions        	Description
+Aggregate Functions	|| Use aggregate functions in a GROUP BY clause in SOQL queries to generate reports for analysis.
+convertCurrency()	|| Use convertCurrency() in SOQL queries to convert currency fields to the user’s currency.
+convertTimezone()	|| Use convertTimezone() in a date function of SOQL queries to convert dateTime fields to the user’s time zone.
+Date Functions	    || Use date functions in SOQL queries to group or filter data by date periods such as day, calendar month, or fiscal year.
+FORMAT()	        || Use FORMAT() in SOQL queries to apply localized formatting to standard and custom number, date, time, and currency fields.
+GROUPING(fieldName)	Use GROUPING(fieldName) in SOQL queries to identify subtotals.
+toLabel()	        || Use toLabel() to translate SOQL query results into the language of the user who submits the query.
+
+Aggregate Functions
+Use aggregate functions in a GROUP BY clause in SOQL queries to generate reports for analysis. Aggregate functions include AVG(), COUNT(), MIN(), MAX(), SUM(), and more.
+
+You can also use aggregate functions without using a GROUP BY clause. For example, you could use the AVG() aggregate function to find the average Amount for all your opportunities.
+
+SELECT AVG(Amount)
+FROM Opportunity
+
+However, these functions become a more powerful tool to generate reports when you use them with a GROUP BY clause. For example, you could find the average Amount for all your opportunities by campaign.
+SELECT CampaignId, AVG(Amount)
+FROM Opportunity
+GROUP BY CampaignId
+
+
+SELECT CampaignId, AVG(Amount)
+FROM Opportunity
+GROUP BY CampaignId
+
+SELECT COUNT()
+FROM Account
+WHERE Name LIKE 'a%'
+
+SELECT COUNT(Id)
+FROM Account
+WHERE Name LIKE 'a%'
+
+
+Returns the number of distinct non-null field values matching the query criteria. For example:
+SELECT COUNT_DISTINCT(Company)
+FROM Lead
+
+SELECT MIN(CreatedDate), FirstName, LastName
+FROM Contact
+GROUP BY FirstName, LastName
+
+SELECT Name, MAX(BudgetedCost)
+FROM Campaign
+GROUP BY Name
+
+SELECT SUM(Amount)
+FROM Opportunity
+WHERE IsClosed = false AND Probability > 60
+
+===============================================================================
+COUNT() and COUNT(fieldName)
+
+COUNT() returns the number of rows that match the filtering conditions.
+SELECT COUNT()
+FROM Account
+WHERE Name LIKE 'a%'
+
+Note the following when using COUNT():
+
+COUNT() must be the only element in the SELECT list.
+The number of rows returned by COUNT() includes null values that match the filtering conditions of the query.
+You can use COUNT() with a LIMIT clause.
+You can't use COUNT() with an ORDER BY clause
+
+===============================================================================================
+COUNT(fieldName) returns the number of rows that match the filtering conditions and have a non-null value for fieldName.
+SELECT COUNT(Id)
+FROM Account
+WHERE Name LIKE 'a%'
+
+You can include multiple COUNT(fieldName) items in a SELECT clause. For example, the following query returns the number of opportunities, and the number of opportunities associated with a campaign
+SELECT COUNT(Id), COUNT(CampaignId)
+FROM Opportunity
+
+You can use GROUP BY clause with COUNT(fieldName) to analyze your records and return summary reporting information. For example, the following query returns the number of leads for each LeadSource value:
+
+SELECT LeadSource, COUNT(Name)
+FROM Lead
+GROUP BY LeadSource
+
+===================================================================================================
+convertCurrency()
+
+Use convertCurrency() in the SELECT statement of a SOQL query to convert currency fields to the user’s currency. 
+This action requires that the org has multiple currencies enabled.
+
+SELECT Id, FORMAT(convertCurrency(AnnualRevenue))
+FROM Account
+
+
+To format currencies according to the user’s locale, use FORMAT() with SELECT() statements.
+ In this example, convertedCurrency is an alias for the returned amount, which is formatted appropriately in the user interface.
+SELECT Amount, FORMAT(amount) Amt, convertCurrency(amount) convertedAmount,
+FORMAT(convertCurrency(amount)) convertedCurrency FROM Opportunity where id = '006R00000024gDtIAI'
+
+SELECT Name, MAX(Amount)
+FROM Opportunity
+GROUP BY Name
+HAVING MAX(Amount) > 10000
+
+====================================================================================================================
+convertTimezone()
+SOQL queries in a client application return dateTime field values as Coordinated Universal Time (UTC) values. You can use convertTimezone() in a date function to convert dateTime fields to the user’s time zone.
+For example, you could use the convertTimezone(dateTimeField) function to find the sum of the Amount values for all your opportunities for each hour of the day, where the hour is converted to the user's time zone.
+
+SELECT HOUR_IN_DAY(convertTimezone(CreatedDate)), SUM(Amount)
+FROM Opportunity
+GROUP BY HOUR_IN_DAY(convertTimezone(CreatedDate))
+
+======================================================================================================================
+Date Functions
+Date functions in SOQL queries allow you to group or filter data by date periods such as day, calendar month, or fiscal year.
+For example, you could use the CALENDAR_YEAR() function to find the sum of the Amount values for all your opportunities for each calendar year.
+
+SELECT CALENDAR_YEAR(CreatedDate), SUM(Amount)
+FROM Opportunity
+GROUP BY CALENDAR_YEAR(CreatedDate)
+
+This table lists all the date functions supported by SOQL.
+
+Date            Function	Description	Examples
+CALENDAR_MONTH()	Returns a number representing the calendar month of a date field.	
+1 for January
+12 for December
+
+CALENDAR_QUARTER()	Returns a number representing the calendar quarter of a date field.	
+1 for January 1 through March 31
+2 for April 1 through June 30
+3 for July 1 through September 30
+4 for October 1 through December 31
+
+CALENDAR_YEAR()	Returns a number representing the calendar year of a date field.	2009
+DAY_IN_MONTH()	Returns a number representing the day in the month of a date field.	20 for February 20
+DAY_IN_WEEK()	Returns a number representing the day of the week for a date field.	
+1 for Sunday
+7 for Saturday
+
+DAY_IN_YEAR()	Returns a number representing the day in the year for a date field.	32 for February 1
+DAY_ONLY()	Returns a date representing the date portion of a dateTime field.	2009-09-22 for September 22, 2009
+You can only use DAY_ONLY() with dateTime fields.
+
+FISCAL_MONTH()	Returns a number representing the fiscal month of a date field. This differs from CALENDAR_MONTH() if your organization uses a fiscal year that does not match the Gregorian calendar.
+This function is not supported if your organization has custom fiscal years enabled.
+
+If your fiscal year starts in March:
+1 for March
+12 for February
+FISCAL_QUARTER()	Returns a number representing the fiscal quarter of a date field. This differs from CALENDAR_QUARTER() if your organization uses a fiscal year that does not match the Gregorian calendar.
+This function is not supported if your organization has custom fiscal years enabled.
+
+If your fiscal year starts in July:
+1 for July 15
+4 for June 6
+FISCAL_YEAR()	Returns a number representing the fiscal year of a date field. This differs from CALENDAR_YEAR() if your organization uses a fiscal year that does not match the Gregorian calendar.
+This function is not supported if your organization has custom fiscal years enabled.
+
+2009
+HOUR_IN_DAY()	Returns a number representing the hour in the day for a dateTime field.	18 for a time of 18:23:10
+You can only use HOUR_IN_DAY() with dateTime fields.
+
+WEEK_IN_MONTH()	Returns a number representing the week in the month for a date field.	2 for April 10
+The first week is from the first through the seventh day of the month.
+
+WEEK_IN_YEAR()	Returns a number representing the week in the year for a date field.	1 for January 3
+The first week is from January 1 through January 7.
+
+===============================================================================================================================
+SELECT CreatedDate, Amount
+FROM Opportunity
+WHERE CALENDAR_YEAR(CreatedDate) = 2009
+
+=================================================================================================================================
+FORMAT ()
+Use FORMAT with the SELECT clause to apply localized formatting to standard and custom number, date, time, and currency fields.
+
+SELECT Id, LastModifiedDate, FORMAT(LastModifiedDate) formattedDate FROM Account
+=======================================================================================================================
+GROUPING(fieldName)
+You can use the GROUPING(fieldName) function in SELECT, HAVING, and ORDER BY clauses.
+Use the GROUPING(fieldName) function to determine whether a row is a subtotal or field when you use GROUP BY ROLLUP or GROUP BY CUBE in SOQL queries.
+
+GROUPING(fieldName) returns 1 if the row is a subtotal for the field, and 0 otherwise.
+
+SELECT LeadSource, Rating,
+    GROUPING(LeadSource) grpLS, GROUPING(Rating) grpRating,
+    COUNT(Name) cnt
+FROM Lead
+GROUP BY ROLLUP(LeadSource, Rating)
+================================================================================================================================
+toLabel()
+Translate SOQL query results into the language of the user who submits the query using the toLabel function.
+
+Any organization can use the toLabel() function.
+
+toLabel(object.field)
+
+Use this function to return translated search results on:
+
+Regular, multiselect, division, or currency code picklist fields, whose values are returned by the relevant describe API call.
+Data category group and data category unique name fields.
+Recordtype names.
+Object History. HISTORY is supported on a limited basis. When a tracked field changes,
+ the clause SELECT toLabel(Field) FROM *History returns the primary label of the changed field or the existing translated label. OldValue and NewValue fields in history objects also support the toLabel method, but the query returns translated values for only tracked changes on supported field types.
+
+ SELECT Company, toLabel(Recordtype.Name) FROM Lead
+
+ The returned records are translated into the language of the user who issued the query.
+
+ You can’t filter on the translated name value from a record type. Always filter on the master value or the ID of the object for record types.
+
+ SELECT Company, Status, toLabel(Status) translatedStatus FROM Lead
+
+ SELECT Company, toLabel(Status)
+FROM Lead
+WHERE toLabel(Status) = 'le Draft'
+
+The query returns lead records with a picklist value for Status equal to 'le Draft.' The comparison is made against the value for the user’s language. If no translation is available for the picklist, the comparison is made against the master values.
+
+The following limitations apply to translated picklist values:
+
+The LIKE operator can only query on the label of the picklist, not on its API name.
+You can’t use the toLabel() function with the operator ORDER BY. SOQL always uses the picklist’s defined order.
+You can’t use the toLabel()function in a WHERE clause for division or currency ISO code picklists.
+=======================================================================================================
+Query Parent-to-Child Relationships
+In each relationship, the parent is counted as the first level of the query and the child relationships can be up to four levels deep from the parent root. SOQL queries that include more than five levels of parent-to-child relationships result in an error.
+
+This example SOQL query includes five levels of parent-child relationships.
+
+SELECT Name,
+    (SELECT LastName,
+        (SELECT AssetLevel,
+            (SELECT Description,
+                (SELECT LineItemNumber FROM WorkOrderLineItems)    
+            FROM WorkOrders)    
+        FROM Assets)    
+    FROM Contacts)    
+FROM Account
+
+Another example query that traverses parent-to-child and child-to-parent relationships.
+
+SELECT Amount, Id, Name, (SELECT Quantity, ListPrice,
+  PriceBookEntry.UnitPrice, PricebookEntry.Name,
+  PricebookEntry.product2.Family FROM OpportunityLineItems)
+  FROM Opportunity
+
+===================================================================================================================
+  Understanding Relationship Fields and Polymorphic Fields
+
+  In a polymorphic relationship, the referenced object of the relationship can be one of several different types of object.
+Some fields are relationship fields, which means they can be used to get information about a related object. And some of those relationship fields are polymorphic fields. A polymorphic field is one where the related object might be one of several different types of objects. For example, the Who relationship field of a Task can be a Contact or a Lead.
+
+To determine what kind a field is, call describeSObjects() on the object and examine the properties for the field.
+If relationshipName is not null, the field is a relationship field.
+If, in addition, namePointing is true, polymorphicForeignKey is true, and referenceTo has more than one referenced object type, then the field is polymorphic
+
+Example of a Polymorphic Field
+
+The OwnerId field of the Event object has the following properties:
+relationshipName = Owner
+namePointing = true
+polymorphicForeignKey = true
+referenceTo = Calendar, User
+This means it is a polymorphic field. Owner could be a Calendar, or a User. For example, you can use the following SOQL query:
+
+SELECT Id, Owner.Name FROM Event WHERE Owner.Type = 'User'
+
+
+Search
+control-j is the search shortcut
+j
+
+Introduction to SOQL and SOSL
+Salesforce Object Query Language (SOQL)
+Typographical Conventions in This Document
+Quoted String Escape Sequences
+Reserved Characters
+Alias Notation
+SOQL SELECT Syntax
+SOQL SELECT Examples
+SOQL SELECT Functions
+Aggregate Functions
+convertCurrency()
+convertTimezone()
+Date Functions
+FORMAT ()
+GROUPING(fieldName)
+toLabel()
+Relationship Queries
+Understanding Relationship Names
+Using Relationship Queries
+Understanding Relationship Names, Custom Objects, and Custom Fields
+Understanding Query Results
+null Values in Lookup Relationships and Outer Joins
+Identifying Parent and Child Relationships
+Understanding Relationship Fields and Polymorphic Fields
+Understanding Relationship Query Limitations
+Using Relationship Queries with History Objects
+Using Relationship Queries with Data Category Selection Objects
+Using Relationship Queries with the Partner WSDL
+Change the Batch Size in Queries
+SOQL Object Limits and Limitations
+Syndication Feed SOQL and Mapping Syntax
+Location-Based SOQL Queries
+Considerations for Querying Currency Data Using SOQL
+Salesforce Object Search Language (SOSL)
+Salesforce Object Query Language (SOQL)
+/
+Relationship Queries
+/
+Understanding Relationship Fields and Polymorphic Fields
+Understanding Relationship Fields and Polymorphic Fields
+In a polymorphic relationship, the referenced object of the relationship can be one of several different types of object.
+Some fields are relationship fields, which means they can be used to get information about a related object. And some of those relationship fields are polymorphic fields. A polymorphic field is one where the related object might be one of several different types of objects. For example, the Who relationship field of a Task can be a Contact or a Lead.
+
+To determine what kind a field is, call describeSObjects() on the object and examine the properties for the field.
+If relationshipName is not null, the field is a relationship field.
+If, in addition, namePointing is true, polymorphicForeignKey is true, and referenceTo has more than one referenced object type, then the field is polymorphic.
+Example of a Relationship Field
+
+The OwnerId field of the Account object has the following properties:
+relationshipName = Owner
+namePointing = false
+referenceTo = User
+This means it is a relationship field. Use the relationshipName as a pseudo field to get information about the related object, whose type is specified in the referenceTo field. For example, you can use the following SOQL query:
+SELECT Id, Owner.Name FROM Account
+Note
+
+Use the name of the relationship (Owner) not the name of the field (OwnerId).
+
+Example of a Polymorphic Field
+
+The OwnerId field of the Event object has the following properties:
+relationshipName = Owner
+namePointing = true
+polymorphicForeignKey = true
+referenceTo = Calendar, User
+This means it is a polymorphic field. Owner could be a Calendar, or a User. For example, you can use the following SOQL query:
+
+SELECT Id, Owner.Name FROM Event WHERE Owner.Type = 'User'
+Using Polymorphic Fields
+You can use polymorphic fields several ways.
+You can use the polymorphic field for the relationship.
+You can use the Type qualifier on a polymorphic field.
+You can use a TYPEOF clause in a query. 
+
+SELECT Id, Owner.Name
+FROM Task
+WHERE Owner.FirstName like 'B%'
+
+SELECT Id, Who.FirstName, Who.LastName
+FROM Task
+WHERE Owner.FirstName LIKE 'B%'
+
+SELECT Id, Who.Id, Who.Type
+FROM Task
+WHERE Who.Type='Contact'
+
+Using the Type Qualifier
+You can use the Type qualifier on a field to determine the object type that’s referenced in a polymorphic relationship. Use the Type qualifier in the WHERE clause of a SELECT statement to conditionally control what’s returned from the query depending on the referenced object type. The following SELECT statement uses Type to filter the query based on the What field in Event.
+
+SELECT Id
+FROM Event
+WHERE What.Type IN ('Account', 'Opportunity')
+
+Using TYPEOF
+SOQL supports polymorphic relationships using the TYPEOF expression in a SELECT statement.  
+
+Use TYPEOF in a SELECT statement to control which fields to query for each object type in a polymorphic relationship.
+The following SELECT statement returns a different set of fields depending on the object type associated with the What polymorphic relationship field in an Event.
+SELECT 
+  TYPEOF What
+    WHEN Account THEN Phone, NumberOfEmployees
+    WHEN Opportunity THEN Amount, CloseDate
+    ELSE Name, Email
+  END
+FROM Event
+
+At run time, this SELECT statement checks the object type referenced by the What field in an Event.
+If the object type is Account, the referenced Account’s Phone and NumberOfEmployee fields are returned. 
+If the object type is Opportunity, the referenced Opportunity’s Amount and CloseDate fields are returned. 
+If the object type is any other type, the Name and Email fields are returned. Note that if an ELSE clause isn’t provided and the object type isn’t Account or Opportunity, then null is returned for that Event.
+
+Note the following considerations for TYPEOF.
+
+TYPEOF can’t be used with a relationship field whose namePointing attribute is false.
+TYPEOF can’t be used with a relationship field whose relationshipName attribute is false.
+TYPEOF is only allowed in the SELECT clause of a query. You can filter on the object type of a polymorphic relationship using the Type qualifier in a WHERE clause. For details, see Filter on Polymorphic Relationship Fields.
+TYPEOF isn’t allowed in queries that don’t return objects, such as COUNT() .
+TYPEOF can’t be used in SOQL queries that are the basis of Streaming API PushTopics.
+TYPEOF can’t be used in SOQL used in Bulk API.
+TYPEOF expressions can’t be nested. For example, you can’t use TYPEOF inside the WHEN clause of another TYPEOF expression.
+TYPEOF isn’t allowed in the SELECT clause of a semi-join query. You can use TYPEOF in the SELECT clause of an outer query that contains semi-join queries. The following example is not valid because TYPEOF is used in the semi-join query:
+
+The following example is not valid because TYPEOF is used in the semi-join query:
+SELECT Name FROM Account
+WHERE CreatedById IN
+    (
+    SELECT 
+        TYPEOF Owner
+            WHEN User THEN Id
+            WHEN Group THEN CreatedById
+        END
+    FROM CASE
+    )
+
+    The following example is valid because TYPEOF is only used in the outer SELECT clause:
+SELECT 
+    TYPEOF What
+        WHEN Account THEN Phone
+        ELSE Name
+    END
+FROM Event
+WHERE CreatedById IN
+    (
+    SELECT CreatedById
+    FROM Case
+    )
+
+
+    TYPEOF can’t be used in queries with GROUP BY, GROUP BY ROLLUP, GROUP BY CUBE, and HAVING.
+
+Combining TYPEOF and Type
+You can combine TYPEOF and Type in a SELECT statement. The following SELECT statement uses both TYPEOF and Type to filter the query and refine the set of returned fields based on the What field in Event.
+
+SELECT Id,
+  TYPEOF What
+    WHEN Account THEN Phone
+    WHEN Opportunity THEN Amount
+  END
+FROM Event
+WHERE What.Type IN ('Account', 'Opportunity')
