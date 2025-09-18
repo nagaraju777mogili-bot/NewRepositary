@@ -1,0 +1,25 @@
+https://sfdcwallah.com/2025/07/14/interview-preparation-order-of-execution-in-salesforce-interview-questions/
+https://medium.com/@aleksej.gudkov/scenario-based-questions-on-order-of-execution-in-salesforce-cb7615ed1f60
+https://www.crsinfosolutions.com/understanding-salesforces-order-of-execution-steps-and-practical-example/
+
+![alt text](image.png)
+
+Order of Execution Steps:
+The order of execution in Salesforce when a record is saved (insert, update, or upsert statement) involves several steps. Here is a brief overview:
+
+Load the initial record from the database.
+Run system validations for standard UI edit pages.
+Execute before record-triggered flows.
+Execute all before triggers.
+Run most custom validations.
+Execute duplicate rules.
+Save the record to the database (without committing).
+Execute all after triggers.
+Run assignment rules.
+Execute auto-response and workflow rules.
+Execute escalation rules.
+Execute post-save Salesforce Flow automations.
+Update roll-up summary fields if applicable.
+Execute Criteria Based Sharing evaluation.
+Commit all DML operations to the database.
+Execute after-commit logic (emails, asynchronous Apex, etc.).
