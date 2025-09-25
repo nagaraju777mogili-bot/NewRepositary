@@ -1,0 +1,76 @@
+<------------------------------------------------------------------------------------------------
+No Global Window Access - LWC enforces secure coding practices by restricting access to certain global objects
+
+Locker services enforce strict isolation between components and ensures safety & security
+
+LWS is the next gen security framework which bring a balance between trusted security and better performance & scalability
+
+--------------------------------------------------------------------------------------------------------------------
+ASPECT          | LOCKER SERVICE                          |                          LWS
+--------------------------------------------------------------------------------------------------------------------
+SCOPE            |Sandboxes All Components(Aura OR LWC)     |      Designed for LWC only
+
+Performence   |slower due to heavy Isolation techniques | Faster due to lightweight security Model
+
+JS Access | Restrict certain Javascript APIs | provides more flexibility with standard APIs
+
+Third Party Libraries | often requires modifications for compatibility  | seamless integration with most parties
+-------------------------------------------------->
+Lightning Web Security (LWS) is a newer security architecture for Lightning components that Salesforce first introduced in Spring ’22. LWS is based on the latest web standards and helps prevent unsafe code behavior by running components in virtual JavaScript sandboxes. To writer code that's compatible with LWS, use LWS tools.
+
+As with Lightning Locker, the goal of Lightning Web Security (LWS) is to prevent Lightning components from interfering with or accessing data that belongs to platform code or components from other namespaces. The architecture of Lightning Web Security protects Lightning components using a different approach.
+
+A Salesforce page can include components created by multiple companies. Components created by an organization’s developer team coexist with components created by Salesforce. If you create apps and deploy them on AppExchange, your components coexist with components that Salesforce created and with the components of the customer who installs your app.
+
+Without preventative measures in place, a component can access the window global objects and obtain private resources or data from other components on the page. One preventative measure is to isolate components by namespace so that a malicious component is unable to access the resources of components outside its namespace.
+
+Isolation Through Virtualization ==>
+The industry standard for achieving isolation is virtualization. Code runs inside a virtual environment, which is a replica of the environment of the host. The virtual environment exposes a fraction of the host's resources to the code running in the virtual environment. Multiple virtual environments run simultaneously in the host environment, but code running in one virtual environment can’t access any of the resources of another virtual environment. Malicious code can only impact the virtual environment where it’s running.
+
+Virtual environments are created and managed by a virtualization engine running in a host environment. The virtualization engine has full access to the resources of the host environment, and it strictly controls what resources are made available to individual virtual environments. Examples of virtualization engines at the hardware platform and operating system level are VMWare and Docker.
+
+Virtualization of the Browser ==>
+Carrying the virtualization concept down to the web app level, the host environment is the browser. Lightning Web Security is the virtualization engine running in the host environment, creating and controlling the virtual environments. The namespace JavaScript sandboxes are the virtual environments. Lightning Web Security grants each virtual environment limited access to specific resources from the host environment. These resources include global objects, network access, cookie access, local storage, and so on.
+
+![alt text](image.png)
+
+With components running in their namespace’s own virtual environments, Lightning Web Security can prevent behavior that is not secure by modifying code at the JavaScript API level. The modifications, or distortions, are applied in the sandboxes.
+
+Distortions ==>
+
+Instead of the secure wrappers used in Lightning Locker, Lightning Web Security uses a technique called distortion. This technique refers to the alteration of code running in the JavaScript sandbox to prevent unsafe behavior.
+
+A distortion dynamically modifies a native JavaScript API to:
+
+Prevent attempts of the API to alter content and data outside the JavaScript sandbox
+Confine running code to the boundaries of the sandbox
+Restrict or reduce access inside the JavaScript sandbox to DOM and shared global objects such as window.location, and data such as cookies
+
+Most API distortions in Lightning Web Security fall into these categories.
+
+Content filtering—to filter out attempts to access properties in other sandboxes, for example in document.cookie, localStorage, sessionStorage, but allow them in the current sandbox
+Sanitization—to strip out malicious code, for example from innerHTML and outerHTML elements
+Property accessor modification—to prevent reading or writing values of certain properties, for example shadowRoot.mode
+
+Enable Lightning Web Security in an Org ==>
+From Setup, in the Quick Find box, enter Session, and then select Session Settings.
+On the Session Settings page, select Use Lightning Web Security for Lightning web components and Aura components and save.
+To ensure the correct files are loaded in the browser, clear your browser cache after enabling or disabling Lightning Web Security. 
+
+Important
+
+LWS relies on Stricter CSP to fully implement its security measures. When LWS is enabled, we strongly advise that you keep the Enable Stricter Content Security Policy setting enabled.
+
+Install ESLint Rules for Lightning Web Security ==>
+
+ESLint rules help you develop code that works with Lightning Web Security (LWS). You can install them on your development machine and run them on your source code.
+
+The ESLint rules are available as an npm package that you install on your local system and use in an IDE or on the command line.
+
+
+
+
+
+
+
+

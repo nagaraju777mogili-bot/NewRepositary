@@ -1,0 +1,41 @@
+JavaScript files in Lightning web components are ES6 modules. By default, everything declared in a module is local—it’s scoped to the module.
+
+To import a class, function, or variable declared in a module, use the import statement. To allow other code to use a class, function, or variable declared in a module, use the export statement.
+
+The core module in Lightning Web Components is lwc. The import statement imports LightningElement from the lwc module.
+
+LightningElement is a custom wrapper of the standard HTML element.
+
+Extend LightningElement to create a JavaScript class for a Lightning web component. You can’t extend any other Salesforce base component class to create a Lightning web component, unless otherwise stated.
+
+export default class MyComponent extends LightningElement {
+  // Your code here
+}
+
+The export default keywords export a MyComponent class for other components to use. The class must be the default export for UI components. Exporting other variables or functions in a UI component isn’t currently supported.
+
+The convention is for the class name to be Pascal Case, where the first letter of each word is capitalized. For myComponent.js, the class name is MyComponent.
+
+The JavaScript file can contain:
+
+The component’s public API via public properties and methods annotated with @api.
+Fields
+Event handlers
+UI component folders can include other JavaScript files in addition to the main myComponent.js file. However, the code in these files is for the component’s own use and can’t be shared.
+
+
+API Module Component ==>
+
+A Lightning web component without a UI can be used as an API module component for sharing code. API module components are sometimes known as service components.
+
+To share code between components, create an ES6 module and export the variables or functions that you want to expose.
+
+An ES6 module is a file that explicitly exports functionality that other modules can use. Modules make it easier to structure your code without polluting the global scope.
+
+An API module component follows the same folder structure and naming convention as the UI components. The difference is that there's no HTML file. See Share JavaScript Code.
+
+These export statements for the lwc module aren't allowed.
+// These exports are invalid
+export {} from "lwc";
+export * from "lwc";
+export { registerTemplate } from "lwc";

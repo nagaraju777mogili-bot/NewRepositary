@@ -1,0 +1,25 @@
+In addition to the JavaScript file that creates the HTML element, a component’s folder can contain other JavaScript files. Use these JavaScript files to structure code in UI components, and share code from API module components.
+
+These additional JavaScript files must be ES6 modules and must have names that are unique within the component’s folder.
+
+myComponent
+   ├──myComponent.html
+   ├──myComponent.js
+   ├──myComponent.js-meta.xml
+   ├──myComponent.css
+   ├──someUtils.js
+   └──someMoreUtils.js
+
+   Export functions and variables in the JavaScript files so they can be imported by the component’s main JavaScript file.
+
+---------------------------------------------------------------------------------------------------
+   Within a JavaScript class, to use a resource from an API module component (sometimes called a service component or a library), import the resource from its namespace/module. The forward slash character (/) separates the namespace from the module name.
+
+   // example.js
+import { LightningElement } from 'lwc';
+
+import { MyNamedExport } from 'c/commonUtils';
+import MyDefaultExport from 'c/commonUtils';
+
+export default class Example extends LightningElement {}
+

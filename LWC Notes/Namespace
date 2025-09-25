@@ -1,0 +1,13 @@
+To protect customer data, LWC previously didn’t support the use of components and API modules from different namespaces. Your custom components could only use components and modules from the default c namespace and the base components in the lightning namespace. This restriction remains in effect when the legacy Lightning security architecture, Lightning Locker, is enabled. Lightning Locker is enabled when LWS is not enabled.
+
+If you enable Lightning Web Security (LWS), you can include Lightning web components and modules from namespaces other than lightning and c in your custom components. The components from other namespaces must be deployed in the org to make them available to your component. For example, components from another developer that you install from a managed package use the developer’s namespace prefix in your organization.
+
+LWS enables you to use components from different namespaces by virtually isolating code to its own namespace. This isolation prevents components from accessing data that belongs to another namespace, while still allowing code from different namespaces to interact.
+
+Namespace Considerations ==>
+
+Consider these guidelines when you're working with a namespace.
+
+A custom Lightning web component can't access a Lightning web component or module in a custom namespace when running in an org that’s using Lightning Locker instead of LWS.
+A custom Lightning web component can access Lightning web components and modules only in the c and lightning namespaces when running in an org that’s using Lightning Locker instead of LWS.
+A custom Lightning web component and a custom Aura component in the same namespace can't have the same name, whether the org uses Lightning Locker or LWS.

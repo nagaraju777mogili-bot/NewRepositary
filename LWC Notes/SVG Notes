@@ -1,0 +1,55 @@
+Use SVG Resources
+You can add an SVG resource to your component in two ways. Add it directly to your component's HTML template. Upload the SVG resource as a static resource and import it in your component's JavaScript file.
+
+SVG (Scalable Vector Graphics) is an XML-based image format that lets you define lines, curves, shapes, and text. Here's an example of a file that contains a red rectangle, green circle, and white text that says “SVG”.
+
+<svg version="1.1" baseProfile="full" width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="red"></rect>
+    <circle cx="150" cy="100" r="80" fill="green"></circle>
+    <text x="150" y="125" font-size="60" text-anchor="middle" fill="white">SVG</text>
+</svg>
+
+
+Add an SVG Resource Directly to an HTML Template 
+
+To include an SVG resource in your HTML template, enclose it in <template> tags like any other element.
+
+<template>
+    <svg version="1.1" baseProfile="full" width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="red"></rect>
+        <circle cx="150" cy="100" r="80" fill="green"></circle>
+        <text x="150" y="125" font-size="60" text-anchor="middle" fill="white">SVG</text>
+    </svg>
+</template>
+
+Import an SVG Resource as a Static Resource
+
+In the SVG file, add an id attribute to the <svg> tag.
+
+<svg version="1.1" baseProfile="full" width="300" height="200" xmlns="http://www.w3.org/2000/svg" id="logo">
+    <rect width="100%" height="100%" fill="red"></rect>
+    <circle cx="150" cy="100" r="80" fill="green"></circle>
+    <text x="150" y="125" font-size="60" text-anchor="middle" fill="white">SVG</text>
+</svg>
+
+Upload the SVG resource to your org as a static resource.
+
+In your component's JavaScript file, import the static resource. Define a field that concatenates the reference to the static resource with its id.
+
+// myComponent.js
+import { LightningElement } from "lwc";
+import SVG_LOGO from "@salesforce/resourceUrl/logo";
+
+export default class myComponent extends LightningElement {
+  svgURL = `${SVG_LOGO}#logo`;
+}
+
+Reference the field in your HTML template with the SVG <use> element.
+
+<!-- myComponent.html -->
+<template>
+  <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
+    ;
+    <use href={svgURL}></use>
+  </svg>
+</template>

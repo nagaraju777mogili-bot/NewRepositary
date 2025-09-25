@@ -1,0 +1,19 @@
+Lightning web components perform better and are easier to develop than Aura components. However, when you develop Lightning web components, you also may need to use Aura, because LWC doesn’t yet support everything that Aura does.
+
+How do you decide which components to develop as Lightning web components and which to develop as Aura components?
+
+Always choose Lightning Web Components unless you need a feature that isn’t supported.
+
+To use an unsupported experience or feature or to use an unsupported interface, develop a Lightning web component and wrap it in an Aura component that simply accesses the experience, feature, or interface.
+
+Note
+
+A Lightning web component can’t contain an Aura component. When you develop a Lightning web component, its DOM subtree must be composed entirely of Lightning web components.
+
+Lightning web components aren’t supported for use with these tools. To use a Lightning web component with these tools, wrap the component in an Aura component.
+
+Chatter Extensions
+Global Actions
+List View Actions
+Related List View Actions
+Standard Action Overrides

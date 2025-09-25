@@ -1,0 +1,7 @@
+The power of Lightning Web Components is the templating system, which uses the virtual DOM to render components smartly and efficiently. It’s a best practice to let LWC manipulate the DOM instead of writing JavaScript to do it.
+
+Use a <template> root tag in your HTML template. You can also use nested <template> tags to work with directives.
+
+When a component renders, the <template> tag is replaced with the name of the component, <namespace-component-name>.
+
+For example, instead of using the class attribute on a nested <template> tag, use the class attribute on a <div> or <span> tag instead.
