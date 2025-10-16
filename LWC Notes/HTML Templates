@@ -5,3 +5,184 @@ Use a <template> root tag in your HTML template. You can also use nested <templa
 When a component renders, the <template> tag is replaced with the name of the component, <namespace-component-name>.
 
 For example, instead of using the class attribute on a nested <template> tag, use the class attribute on a <div> or <span> tag instead.
+
+o compute a value for the property, use a JavaScript getter in the JavaScript class, get property(){}. In the template, the property can be a JavaScript identifier (for example, person) or dot notation that accesses a property from an object (person.firstName). LWC doesn’t allow computed expressions like person[2].name['John'].
+
+
+Use Getters Instead of Expressions ==>
+--------------------------------------
+
+To compute a value for a property, use a JavaScript getter. For example, to convert the name to all uppercase letters, use a getter function in the JavaScript class, not an expression in the template.
+
+Getters are much more powerful than expressions because they’re JavaScript functions. Getters also enable unit testing, which reduces bugs and increases fun.
+
+Define a getter that computes the value in your JavaScript class.
+
+get propertyName() { ... }
+
+Access the getter from the template.
+
+{ propertyName }
+
+
+Ex : <!-- helloExpressions.html -->
+<template>
+  <div class="slds-m-around_medium">
+    <lightning-input
+      name="firstName"
+      label="First Name"
+      onchange={handleChange}
+    ></lightning-input>
+    <lightning-input name="lastName" label="Last Name" onchange={handleChange}></lightning-input>
+    <p class="slds-m-top_medium">Uppercased Full Name: {uppercasedFullName}</p>
+  </div>
+</template>
+
+// helloExpressions.js
+import { LightningElement } from "lwc";
+
+export default class HelloExpressions extends LightningElement {
+  firstName = "";
+  lastName = "";
+
+  handleChange(event) {
+    const field = event.target.name;
+    if (field === "firstName") {
+      this.firstName = event.target.value;
+    } else if (field === "lastName") {
+      this.lastName = event.target.value;
+    }
+  }
+
+  get uppercasedFullName() {
+    return `${this.firstName} ${this.lastName}`.toUpperCase();
+  }
+}
+
+Bind HTML Classes ==>
+----------------------
+
+Manipulate a component or an element's class list easily using its class attribute. You can use class object binding instead of string concatenation to generate complex class names.
+
+Here's an example that evaluates multiple classes on an element.
+
+Ex : 
+<template>
+  <h1>Class Object Binding Demo</h1>
+  <div class={computedClassNames}>Evaluate some classes here</div>
+</template>
+
+import { LightningElement } from "lwc";
+
+export default class extends LightningElement {
+  position = "left";
+  fullWidth = true;
+  hidden = false;
+
+  get computedClassNames() {
+    return [
+      "div__block",
+      this.position && `div_${this.position}`,
+      {
+        "div_full-width": this.fullWidth,
+        hidden: this.hidden,
+      },
+    ];
+  }
+}
+
+
+Your element renders like this.
+
+<div class="div__block div_left div_full-width">Evaluate some classes here</div>
+
+
+In LWC API v62.0 and later, use an array or an object to bind multiple styles to an element's class attribute.
+
+An array is evaluated based on its individual items based on class object binding semantics. For example, if you pass in ["highlight", "yellow"], the element renders class="highlight yellow".
+An object is evaluated based on class object binding semantics. LWC iterates over the enumerable string properties on the object, excluding symbols and properties on the proto-chain. It applies the classes with the keys associated with a truthy value. For example, if you pass in { highlight: true, hidden: false }, the element renders class="highlight".
+In LWC API v62.0 and later, booleans, numbers, and functions are removed instead of converted to a string. For example, if you pass in true, false, or 10, the element renders class="". LWC ignores all other values, like primitive and complex objects.
+
+To render a boolean or numerical value as a string, such as class="false" or class="1", convert the value to a string using String(value).
+
+Bind Inline Styles ==>
+------------------
+
+Append a class or multiple classes on an element or component using its style attribute.
+
+<div class="block" style={inlineStyles}></div>
+
+This example uses a getter to set inline styles on an element. To provide multiple styles, separate the styles using a semi-colon. Also, use standard kebab-cased CSS property keys like font-size.
+
+import { LightningElement } from "lwc";
+
+export default class extends LightningElement {
+  percentage = 80;
+
+  get inlineStyles() {
+    return `width: ${this.percentage}%; font-size: 20px`;
+  }
+}
+
+Render DOM Elements Conditionally ==>
+------------------------------------
+The legacy if:true and if:false directives are no longer recommended. To future-proof your code, replace them with the lwc:if|elseif|else conditional directives.
+
+Directives are special HTML attributes that let you manipulate the DOM using markup. To render different HTML depending on a {property}, add conditional directives to a tag that encloses your conditional content.
+
+Lightning Web Components supports the conditional directives lwc:if={property}, lwc:elseif={property}, and lwc:else. The lwc:if|elseif directives bind {property} to the template, removing and inserting DOM elements based on whether the data is a truthy or falsy value.
+
+Regardless of which directive you use, you must use a key directive to assign a unique ID to each item. When a list changes, the framework uses the key to rerender only the item that changed. The key in the template is used for performance optimization and isn’t reflected in the DOM at run time.
+
+Important
+
+Every item in a list must have a key. When a list changes, the framework uses the key to identify each item so that it can rerender only the item that changed. The key must be a string or a number, it can't be an object. You can’t use index as a value for key. Assign unique keys to an incoming data set. To add new items to a data set, use a private property to track and generate keys.
+
+Render Multiple Templates==>
+----------------------------
+
+You may want to render a component with more than one look and feel, but not want to mix the HTML in one file. For example, one version of the component is plain, and another version displays an image and extra text. In this case, you can import multiple HTML templates and write business logic that renders them conditionally. This pattern is similar to the code splitting used in some JavaScript frameworks
+
+Create multiple HTML files in the component bundle. Import them all and add a condition in the render() method to return the correct template depending on the component’s state. The returned value from the render() method must be a template reference, which is the imported default export from an HTML file.
+
+In this example, the template references are templateOne and templateTwo.\
+
+
+// miscMultipleTemplates.js
+
+import { LightningElement } from "lwc";
+import templateOne from "./templateOne.html";
+import templateTwo from "./templateTwo.html";
+
+export default class MiscMultipleTemplates extends LightningElement {
+  showTemplateOne = true;
+
+  render() {
+    return this.showTemplateOne ? templateOne : templateTwo;
+  }
+
+  switchTemplate() {
+    this.showTemplateOne = !this.showTemplateOne;
+  }
+}
+
+
+<!-- templateOne.html -->
+<template>
+  <lightning-card title="Template One">
+    <div>This is template one.</div>
+    <p class="margin-vertical-small">
+      <lightning-button label="Switch Templates" onclick={switchTemplate}> </lightning-button>
+    </p>
+  </lightning-card>
+</template>
+
+<!-- templateTwo.html -->
+<template>
+  <lightning-card title="Template Two">
+    <div>This is template two.</div>
+    <p class="margin-vertical-small">
+      <lightning-button label="Switch Templates" onclick={switchTemplate}> </lightning-button>
+    </p>
+  </lightning-card>
+</template>

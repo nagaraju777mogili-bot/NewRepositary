@@ -1,0 +1,612 @@
+Lightning Web Components currently enforces shadow DOM on every component, encapsulating a component’s internal markup and making it inaccessible to programmatic code. 
+When you use light DOM, your component lives outside the shadow DOM and avoids shadow DOM limitations. This approach eases third-party integrations and global styling.
+
+Let's look at how the different DOM structures render in the DOM before we dive into details about light DOM. First, consider some markup for a shadow tree. Native shadow DOM renders components within the #shadow-root tag. However, Lightning Experience and Experience Cloud use synthetic shadow instead, which mimics native shadow behavior.
+
+With light DOM, the component content is attached to the host element instead of its shadow tree. It can then be accessed like any other content in the document host, providing similar behavior to content that's not bound by shadow DOM.
+
+<my-app>
+  <my-header>
+    <p>Hello World</p>
+  </my-header>
+</my-app>
+
+Light DOM provides several advantages over shadow DOM.
+
+CSS theming and branding: Light DOM supports global styling, making it easy to apply custom branding to your components and child components.
+Third-party tooling and testing: With light DOM, third-party tools can traverse the DOM, enabling standard browser query APIs like querySelector and querySelectorAll, without traversing the shadow root. For example, light DOM enables standard components in LWR sites to track events.
+Accessibility: Light DOM doesn't scope IDs and enables two separate components to reference an ID on the other. 
+
+For example, <label for="my-input"> can reference <input type="text" id="my-input"> even if the elements are in separate components.
+
+=============================================================================================
+Guidelines for Working with Light DOM 
+-----------------------------------------
+Using light DOM exposes your components to DOM scraping, so if you're working with sensitive data, we recommend using shadow DOM instead. In other words, light DOM doesn't provide the benefits that come with shadow DOM encapsulation, which prevents unauthorized access into the shadow tree. Since the DOM is open for traversal by other components and third-party tools, you are responsible for securing your light DOM components.
+
+Consider these best practices when using both light DOM and shadow DOM in your app.
+
+You can nest a light DOM child component in a parent shadow DOM component and vice versa.
+We recommend encapsulating deeply nested light DOM components in a single shadow DOM component at the top level. Then, you can share styles between all the components under the shadow root.
+Be careful when querying elements or injecting styles at the document level. A shadow tree can sit between the document and your component.
+You can override shadow DOM styles via CSS custom properties and ::part. However, the component owner is in charge of exposing the extension points, which prevents downstream consumers from styling arbitrary elements.
+
+What's Not Available for Light DOM 
+
+Restricting light DOM to specific namespaces isn’t supported.
+Distributing components rendered in light DOM isn’t supported. Component references in a managed package use the c namespace and would result in a namespace conflict.
+Base components are always rendered in shadow DOM.
+Aura components can't use light DOM. However, an Aura component can contain an LWC component that uses light DOM.
+Lifecycle hooks on slots are never invoked since the slot element does not render in the DOM.
+Using slots inside a for:each iterator is not supported. For example:
+
+
+<!-- This results in a runtime error -->
+<template for:each={items} for:item="item">
+  <div key={item.id}>
+    <my-repeateditem item={item}>
+      <slot></slot>
+    </my-repeateditem>
+  </div>
+</template>
+
+
+Lightning Locker Considerations 
+
+Top-level light DOM components aren't protected by Lightning Locker or Lightning Web Security (LWS). Always nest light DOM components somewhere within a shadow DOM component. If you expose a light DOM component at the top-level of your component hierarchy, code from other namespaces can read the content of the component, for example.
+
+Disabling Locker, such as in Experience Builder sites, means that you won't receive the security benefits from Locker. Make sure that you understand the ramifications of a more relaxed CSP environment on your Experience Builder site. See CSP and Lightning Locker Design Considerations.
+
+In Aura-based Experience Builder sites, DOM access using this.querySelector() and other Web APIs are blocked by Lightning Locker. If you're using light DOM in Aura-based Experience Cloud sites, ensure that there's at least one LWC shadow DOM component as an ancestor to the light DOM component. Using a shadow DOM component means you encapsulate the component’s internal markup and are subject to shadow DOM limitations.
+
+========================================
+Compare Light DOM and Shadow DOM 
+---------------------------------
+
+Due to its strong encapsulation, shadow DOM is the recommended way to author components. It hides your component's internals so consumers can only use its public API.
+
+Shadow DOM isn't suitable in the following cases.
+
+Building a highly customizable UI, where you want complete control over a web app's appearance.
+Using third-party libraries. Many popular libraries aren't compatible with shadow DOM.
+Light DOM is a better fit in those cases, but note that consumers can access your component's internals as they can with your public API. Allowing such access makes it challenging to implement changes without impacting your consumer's code.
+
+
+                Shadow DOM	                                           Light DOM
+Security	  
+
+Shadow DOM-  Strong component encapsulation protects components from unauthorized access	
+Light DOM - Weak encapsulation makes components open to unauthorized access
+Shadow DOM 
+
+Portability
+Shadow DOM -Highly portable with access controlled through public APIs
+Light DOM -	Susceptible to breaking changes caused by component authors or consumers
+
+Styling	
+Shadow DOM- Requires CSS custom properties to override styles
+Light DOM- 	Easy to override styles
+
+Third-party library and tool integration	
+
+Shadow DOM - Limited compatibility with third-party libraries or tools requiring DOM traversal or event retargeting	
+Light DOM - Simple integration with third-party libraries and tools
+
+
+
+When working with third-party libraries, such as Google Analytics or another instrumentation library, you don't have to use light DOM if your shadow DOM component exposes the right APIs. Let's say you want to instrument click interactions on a button:
+
+<!-- myButton.html example -->
+<template>
+  <button>{label}</button>
+</template>
+
+With light DOM, you can attach a click event listener on the button element. If you render the component in shadow DOM, the button element isn’t accessible from outside the component. With shadow DOM, <button> becomes an internal implementation detail of the my-button component. In this case, the correct approach to instrument this component is to add a click handler on my-button itself to instrument it.
+
+<!-- myComponent.html example -->
+<template>
+  <my-button label="click me" onclick={handleClick}></my-button>
+</template>
+
+Expose only the bare minimum you want to instrument since exposing your internal events can weaken your component's encapsulation. While the preceding example isn’t always possible, we recommend you explore your options before selecting the best fit for your use case.
+
+=====================================================================================================
+Enable Light DOM in Your Component 
+
+To enable light DOM, you start by setting the renderMode static property in your component class:
+
+import { LightningElement } from "lwc";
+
+export default class LightDomApp extends LightningElement {
+  static renderMode = "light"; // the default is 'shadow'
+}
+
+Then use the lwc:render-mode root template directive, which is required for components using light DOM.
+
+<template lwc:render-mode="light">
+  <my-header>
+    <p>Hello World</p>
+  </my-header>
+</template>
+
+
+Work with Light DOM 
+-------------------
+Migrating a component from shadow DOM to light DOM requires some code changes. The shadow tree affects how you work with CSS, events, and the DOM. Consider the differences described in the following sections when you work with light DOM.
+
+Composition 
+
+Your app can contain components that use either shadow or light DOM. In this example template, my-app uses shadow DOM and contains several components: my-header uses light DOM and my-footer uses shadow DOM.
+
+<my-app>
+  #shadow-root 
+  | <my-header>
+  |   <p>Hello World</p>
+  | </my-header>
+  | <my-footer>
+  |   #shadow-root 
+  |   |  <p>Footer</p>
+  | </my-footer>
+</my-app>
+
+A light DOM component can contain a shadow DOM component. Similarly, a shadow DOM component can contain a light DOM component.
+
+Accessibility 
+
+Unlike synthetic or native shadow, light DOM doesn't scope IDs to an individual component. Instead, it enables a component to reference an ID on a separate component. This advantage enables you to link two elements using IDs and ARIA attributes by placing them in the same shadow root.
+
+Consider this example with two sibling components.
+
+<!-- container.html -->
+<template>
+  <c-label></c-label>
+  <c-input></c-input>
+</template>
+
+The c-label component contains a <label> element with an id attribute.
+
+<!-- label.html -->
+<template lwc:render-mode="light">
+  <label id="my-label">My label</label>
+</template>
+
+The c-input component contains an <input> element that references the <label> element from the c-label component.
+
+<!-- input.html -->
+<template lwc:render-mode="light">
+  <input type="text" aria-labelledby="my-label" />
+</template>
+
+CSS 
+
+With shadow DOM, CSS styles defined in a parent component don’t apply to a child component. Contrastingly, light DOM enables styling from the root document to target a DOM node and style it.
+
+The styles on the following native shadow component cascades into the child component's light DOM. In this case, the light DOM component is inside the native shadow component and is mounted at the closest native shadow root level. This light DOM component is scoped locally within that entire shadow root and affects any light DOM components inside that root.
+
+<template>
+  <my-app>
+    #shadow-root
+    |  <style> p { color: green; }</style>
+    |  <p>This is a paragraph in shadow DOM</p>
+    |    <my-container>
+    |      <p>This is a paragraph in light DOM</p>
+    |    </my-container>
+  </my-app>
+</template>
+
+Similarly, the styles on a child component rendered in light DOM are applied to its parent components until a shadow boundary is encountered when using native shadow DOM.
+
+Note
+
+In synthetic shadow DOM, styles are implemented at the global document level, but using attributes to scope the styles. This is a current limitation for synthetic shadow DOM.
+
+LWC doesn't scope styles automatically for you. To prevent styles from cascading out of a component, we recommend using scoped styles with *.scoped.css files. See the Use Scoped Styles in Light DOM section.
+
+To override inherited styles in Lightning web components, use SLDS styling hooks in the component stylesheet. Your styling hooks act as placeholders for your custom styles. See the Blueprint Overview for a list of component blueprints that support component styling hooks.
+
+Tip
+
+The order in which light DOM components are rendered impacts the order in which stylesheets are injected into the root node and directly influences CSS rule specificity.
+
+-----------------------------------------------------------------
+Access Elements 
+
+In shadow DOM, you can only access elements the component owns.
+
+In contrast, you can retrieve a node from a light DOM component, which is helpful for third-party integrations and testing. For example, you can query the paragraph in your app using document.querySelector('p').
+
+<!-- JS code returns "Your Content Here" -->
+<template>
+  <script>
+    console.log(document.querySelector("my-custom-class").textContent);
+  </script>
+  <my-component>
+    <div class="my-custom-class">Your Content Here</div>
+  </my-component>
+</template>
+
+With shadow DOM, LightningElement.prototype.template returns the component-associated shadow root. The template element isn't available to components that use light DOM, so with light DOM, LightningElement.prototype.template returns null.
+
+When migrating a shadow DOM component to light DOM, replace this.template.querySelector with this.querySelector. The following example uses a list of common DOM APIs to work with a light DOM component.
+
+import { LightningElement } from "lwc";
+
+export default class LightDomApp extends LightningElement {
+  static renderMode = "light";
+  query(event) {
+    const el = this.querySelector("p");
+    const all = this.querySelectorAll("p");
+    const elById = this.getElementById("#myId");
+    const elements = this.getElementsByClassName("my-class");
+    const tag = this.getElementsByTagName("button");
+  }
+}
+
+With light DOM components, this.querySelectorAll() can return elements rendered by other light DOM components. To access the parent element in light DOM, use this.hostElement.
+
+The id attribute on an element is preserved at runtime and isn’t manipulated as in synthetic shadow DOM. So you can use an id selector in CSS or JavaScript because it matches the element's id at runtime.
+
+Note
+
+Alternatively, use this.refs when you're working with components in light DOM and shadow DOM. this.refs accesses the element that's defined in the component and behaves similarly in both light DOM and shadow DOM, unlike this.querySelector or this.querySelectorAll.
+
+---------------------------------------------------------------------------------------------------------
+
+Events 
+
+With shadow DOM, if an event bubbles up and crosses the shadow boundary, some property values change to match the scope of the listener. With light DOM, events aren’t retargeted. If you click a button that's nested within multiple layers of light DOM components, the click event can be accessed at the document level. Also, event.target returns the button that triggered the event, instead of the containing component.
+
+For example, you have a component c-light-child using light DOM nested in a container component c-light-container that's also using light DOM. The top-level c-app component uses shadow DOM
+
+<!-- app.html (shadow DOM) -->
+<template>
+  <c-light-container onbuttonclick={handleButtonClick}> </c-light-container>
+</template>
+
+<!-- lightContainer.html -->
+<template lwc:render-mode="light">
+  <p>Hello, Light DOM Container</p>
+  <!-- c-light-child host -->
+  <c-light-child onbuttonclick={handleButtonClick}> </c-light-child>
+</template>
+
+// lightContainer.js
+import { LightningElement } from "lwc";
+
+export default class LightContainer extends LightningElement {
+  static renderMode = "light";
+  handleButtonClick(event) {
+    // do something
+  }
+}
+
+<!-- lightChild.html -->
+<template lwc:render-mode="light">
+  <button onclick={handleClick}></button>
+</template>
+
+// lightChild.js
+import { LightningElement } from "lwc";
+
+export default class LightChild extends LightningElement {
+  static renderMode = "light";
+  handleClick(event) {
+    this.dispatchEvent(new CustomEvent("buttonclick", { bubbles: true, composed: false }));
+  }
+}
+
+When you dispatch the custom buttonclick event in c-light-child, the handlers return these elements.
+
+c-light-child host handler
+
+event.currentTarget: c-light-child
+event.target: c-light-child
+c-light-container host handler
+
+event.currentTarget: c-light-container
+event.target: c-light-child
+In contrast, if c-light-container uses shadow DOM, the event doesn’t escape the shadow root.
+
+Note
+
+Events bubble through components even if composed is false in light DOM, since there's no shadow root.
+---------------------------------------------------------------------------------------------------------
+Slots
+-----
+
+Light DOM emulates slots because browsers don't support them outside shadow DOM. Slots in light DOM behave similarly to synthetic shadow slots. LWC determines at run-time if a slot is running light DOM.
+
+The <slot> element is a placeholder in a component for where slotted content gets attached. <slot> isn't rendered in light DOM, so if other parts of your code depend on attributes or event listeners of a <slot> element, LWC throws a compiler error. For example, the slotchange event and ::slotted CSS pseudo-selector aren’t supported since the slot element doesn’t render in the DOM.
+
+A <slot> element without the name property is a default (or unnamed) slot. To pass content from only a specific element into a <slot>, create a named slot.
+
+Named Slots 
+
+To create a named slot, set a <slot> element's name property to a string value. To insert slotted content in that named slot, set the slot property of the element with content to the same string value.
+
+In the sample code below, the component my-component has a named and an unnamed slot. The named slot contains fallback content that only renders if you don't provide slotted content.
+
+<!-- myComponent.html -->
+<template>
+  <slot name="title">Fallback content</slot> // Named slot
+  <h3>Heading text</h3>
+  <slot></slot> // Unnamed/Default slot
+</template>
+
+Pass slotted content into my-component like this.
+
+<my-component>
+  <p>Default slotted content</p>
+  <h1 slot="title">Content for named slot</h1>
+</my-component>
+
+At run-time, the slotted content or fallback content is flattened to the parent element. Content is directly appended to the host element in the DOM. The <slot> elements in my-component aren’t rendered to the DOM.
+
+<my-component>
+  <h1>Content for named slot</h1>
+  <h3>Heading text</h3>
+  <p>Default slotted content</p>
+</my-component>
+
+Light DOM only renders slotted elements that are assigned to slots. If an element with slotted content isn't linked to a slot, the element's lifecycle hooks are never invoked.
+
+<!-- c-parent -->
+<template>
+  <c-child>
+    <span>This element isn't rendered in light DOM because c-child doesn't have a slot</span>
+  </c-child>
+</template>
+
+<!-- c-child -->
+<template>
+  <p>No slot here</p>
+</template>
+
+<!-- c-parent -->
+<template>
+  <c-child>
+    <span>This element isn't rendered in light DOM because c-child doesn't have a slot</span>
+  </c-child>
+</template>
+
+<!-- c-child -->
+<template>
+  <p>No slot here</p>
+</template>
+
+Slotted Content and Components 
+
+Consider these composition models using slots. A component in light DOM can slot in content and other components. The slots support both light DOM and shadow DOM components
+
+<!-- my-component -->
+<template>
+  <slot name="content">Default content in the named slot</slot>
+  <p>This makes the component a bit more complex</p>
+  <slot>This is a default slot to test if content bypasses the named slot and goes here</slot>
+</template>
+
+Here’s how your content is rendered in the slots.
+
+<my-component>
+  <!-- Inserted into the content slot -->
+  <div slot="content">Some text here</div>
+</my-component>
+
+<my-component>
+  <!-- Inserted into the content slot -->
+  <my-shadow-lwc slot="content">Some text here</my-shadow-lwc>
+</my-component>
+
+<my-component>
+  <!-- Inserted into the content slot -->
+  <my-light-lwc slot="content">Some text here</my-light-lwc>
+</my-component>
+
+<my-component>
+  <!-- Inserted into the default slot -->
+  <my-shadow-lwc>Some text here</my-shadow-lwc>
+</my-component>
+
+<my-component>
+  <!-- Inserted into the default slot -->
+  <my-light-lwc>Some text here</my-light-lwc>
+</my-component>
+
+Style Inheritance for Slots 
+
+Consider this light DOM component c-light-slot-consumer that contains a shadow DOM component c-shadow-slot-container and light DOM component c-light-slot-container.
+
+<!-- app.html -->
+<template>
+  <c-shadow-component></c-shadow-component>
+  <c-light-slot-consumer></c-light-slot-consumer>
+</template>
+
+<!-- lightSlotConsumer.html -->
+<template lwc:render-mode="light">
+  <c-shadow-slot-container>
+    <p>Hello from shadow slot</p>
+  </c-shadow-slot-container>
+  <c-light-slot-container>
+    <p>Hello from light slot</p>
+  </c-light-slot-container>
+</template>
+
+<!-- shadowSlotContainer.html -->
+<template>
+  <slot></slot>
+</template>
+
+<!-- lightSlotContainer.html -->
+<template lwc:render-mode="light">
+  <slot name="other">
+    <p>Hello from other slot</p>
+  </slot>
+  <slot>This is the default slot</slot>
+</template>
+
+If you include styles in c-app, all elements within the slots (in both the shadow DOM and light DOM components) get the styles. However, the shadow DOM component without slots doesn't receive the styles
+
+<c-app>
+  <style type="text/css">
+    p {
+      background: green;
+      color: white;
+    }
+  </style>    
+  <h2>Hello Light DOM</h2>
+    <p>This is a paragraph in app.html</p>
+    <h3>Shadow DOM</h3>
+    <c-shadow-component>
+        #shadow-root (open)
+        | <p>Hello, Shadow DOM container</p>
+    </c-shadow-component>
+    <h3>Slots</h3>
+    <c-light-slot-consumer>
+        <c-shadow-slot-container>
+            #shadow-root (open)
+            | <p>Hello from shadow-slot-container</p>
+        </c-shadow-slot-container>
+        <c-light-slot-container>
+            <p>Hello from other slot</p>
+            <p>Hello from light-slot-container</p>
+        </c-light-slot-container>
+    </c-light-slot-consumer>
+</c-app>
+
+slot Attribute for Light DOM Elements 
+
+When a component is rendered to the DOM at runtime, light DOM slots don't rely on the native browser <slot> elements or slot attributes.
+
+In LWC API v61.0 and later:
+
+LWC removes the slot attribute from an element when it's being slotted into a light DOM slot.
+
+For example, this <template> passes a <div> with the slot='lightSlot' property into a light DOM slot.
+
+<template>
+    <c-light-child>
+        <div slot='lightSlot'>I got slotted</div>
+    </c-light-child>
+</template>
+
+<template render:mode="light">
+    <slot name="lightSlot"></slot>
+</template>
+
+The c-light-child component renders to the DOM without the slot property.
+
+<c-light-child>
+    <div>I got slotted</div>    // div renders WITHOUT the slot property
+</c-light-child>
+
+
+
+Scoped Slots 
+
+With scoped slots, you can access data in a child component and render it in slotted content inside of a parent component. Binding data from the child component to the scoped slot allows the parent component to reference the child component’s data in the slotted content. This data is slotted in the child component’s light DOM.
+
+In this example, the child component <c-child> binds its item data to the scoped slot <slot>. In the parent component <c-parent>, the scoped slot fragment references {item.id} and {item.name} in the markup that will be slotted to <c-child>.
+
+<!-- c/parent.html -->
+<template> <!-- Parent component doesn’t need to be light DOM -->
+    <c-child>
+        <template lwc:slot-data="item">
+            <span>{item.id} - {item.name}</span>
+        </template>
+    </c-child>
+</template>
+
+
+<!-- c/child.html -->
+<template lwc:render-mode="light"> <!-- Child must be light DOM -->
+    <ul>
+        <template for:each={item} for:item="item">
+            <li key={item.id}>
+                <slot lwc:slot-bind={item}</slot>
+            </li>
+        </template>
+    </ul>
+</template>
+
+Because the scoped slot fragment is in the parent component’s template, the parent component owns the slotted content. So if the parent component references a scoped style sheet, those styles also apply to the content of the scoped slot.
+
+The parent component partially renders the content of the scoped slot, so it must be enclosed in <template></template> tags. In the example, the scoped slot content is <span>{item.id} - {item.name}</span>. The parent component creates this partial fragment.
+
+The parent component also renders each item, and the child component controls the loop logic. <c-child> creates as many slots as needed using the same template fragment passed from <c-parent>.
+
+Note
+
+To use scoped slots, the child component must use light DOM. Scoped slots in shadow DOM aren’t supported. The parent can be a light DOM or shadow DOM component.
+
+The final HTML looks as follows.
+
+<c-parent>
+  #shadow-root
+  | <c-child>
+  |  <ul>
+  |    <li>
+  |      <span>1 - One</span>
+  |    </li>
+  |    <li>
+  |      <span>2 - Two</span>
+  |    </li>
+  |  </ul>
+  | </c-child>
+</c-parent>
+
+To introduce scoped slots into your components, add the directives lwc:slot-bind and lwc:slot-data. For more information, see Directives for Slots and Directives for Nested Templates.
+
+
+--------------------------------------------------------------------------------------------------------
+Target the Root Element 
+
+As light DOM styles aren't scoped by default, the :host pseudo selector refers to the closest shadow root host element (if any). With light DOM scoped styles, the :host selector refers to the root element of the light DOM component, which is the root of the scoped DOM region.
+
+Let's say you have an unscoped and scoped stylesheet on a light DOM component.
+
+/* light.css */
+:host {
+  background: red;
+}
+
+/* light.scoped.css */
+:host {
+  background: blue;
+}
+
+The component renders:
+
+<c-shadow>
+  <!-- red background -->
+  #shadow-root
+  <c-light class="c-light_light-host">
+    <!-- blue background -->
+    <style>
+      :host {
+        background: red;
+      }
+      :c-light_light-host {
+        background: blue;
+      }
+    </style>
+  </c-light>
+</c-shadow>
+
+--------------------------------------------------------------------------------------------------
+Compare Scoped Styles with Synthetic Shadow DOM 
+
+Light DOM scoped styles have some differences from LWC's synthetic shadow scoped styles.
+
+Light DOM scoped styles use classes for scoping, but synthetic shadow DOM uses HTML attributes.
+Light DOM scoped styles don't support @import within scoped stylesheets.
+Light DOM scoped styles don't apply to content that's manually injected into the template inside of lwc:dom="manual", for example, content injected using Element.appendChild or Element.innerHTML.
+
+
+Convert Components from Shadow DOM to Light DOM 
+
+To easily convert components from shadow DOM to light DOM, use the lwc-codemod tool. The tool modifies the files in a component bundle, which includes adding the renderMode property in the JavaScript file and the lwc:render-mode directive in the HTML file.
+
+
+
+

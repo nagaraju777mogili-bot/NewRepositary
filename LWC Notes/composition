@@ -1,0 +1,601 @@
+You can add components within the body of another component. Composition enables you to build complex components from simpler building-block components.
+
+Note
+
+Inheritance is allowed, but it isn’t recommended because composition is usually more effective. To share logic between components, use a module that contains only logic. See Additional JavaScript Files. If you do choose to use inheritance, note that it doesn’t work across namespaces under Lightning Locker. You must enable Lightning Web Security (LWS) to use inheritance across namespaces. You can’t extend the lightning namespace in either security architecture.
+
+When composing components, a template owner can nest components inside of a container component. The container component is known as the parent component, and each of the nested components are called child components. See Compose Components.
+
+Owner 
+
+The owner is the component that owns the template. In this example, the owner is the c-todo-app component. The owner controls all the composed components that it contains. The owner can:
+
+Set public properties on composed components
+Call methods on composed components
+Listen for any events fired by the composed components
+
+Container 
+
+A container contains other components but itself is contained within the owner component. In this example, c-todo-wrapper is a container. A container is less powerful than the owner. A container can:
+
+Read, but not change, public properties in contained components
+Call methods on composed components
+Listen for some, but not necessarily all, events bubbled up by components that it contains.
+
+Parent and child 
+
+When a component contains another component (which can in turn contain other components), we have a containment hierarchy. In the documentation, we sometimes talk about parent and child components. A parent component contains a child component, like this:
+
+<template>
+  <div>
+    <child-component></child-component>
+  </div>
+</template>
+
+------------------------------------------------------------------------------------------------------------
+Set Properties on Child Components
+
+To communicate down the containment hierarchy, an owner can set a property on a child component. An attribute in HTML turns into a property assignment in JavaScript.
+
+A parent component can set a primitive value like a string or number on a child component. However, non-primitive value like an object or array passed to a component is read-only and you must make a shallow copy to modify any of the nested values.
+
+Let’s look at how the owner, c-todo-app, sets public properties on the two instances of c-todo-item.
+
+Look at todoItem.js. The @api decorator exposes the itemName field as a public property.
+
+// todoItem.js
+import { LightningElement, api } from "lwc";
+export default class TodoItem extends LightningElement {
+  @api itemName;
+}
+
+To set the public itemName property, todoApp.html sets the item-name attribute on each c-todo-item component.
+
+<!-- todoApp.html -->
+<template>
+  <c-todo-item item-name="Milk"></c-todo-item>
+  <c-todo-item item-name="Bread"></c-todo-item>
+</template>
+
+Property names in JavaScript are in camel case while HTML attribute names are in kebab case (dash-separated) to match HTML standards. In todoApp.html, the item-name attribute in markup maps to the itemName JavaScript property of c-todo-item.
+
+------------------------------------------------------------------------------------------------------------------
+
+Set a Non-Primitive Value on a Child Component 
+
+A non-primitive value like an object or array that's passed to a component is read-only. To mutate the data, make a shallow copy of the objects you want to mutate.
+
+Let's take a look at a parent component that passes an object to a child component and then let the child component update its value.
+
+Set the value in the JavaScript.
+
+// parent.js
+import { LightningElement } from "lwc";
+
+export default class Parent extends LightningElement {
+  obj = {
+    msg: "hello",
+  };
+
+  get serializedObj() {
+    return JSON.stringify(this.obj);
+  }
+}
+
+The reactive object obj is passed from the parent component to the child component. The child component displays the serialized object string with two buttons that update the object value either by updating the original object or a shallow copy of it.
+
+<!-- child.html -->
+<template>
+  <div>Child: {serializedObj}</div>
+
+  <lightning-button label="Update original" onclick={updateOriginal}></lightning-button>
+  <lightning-button label="Update shallow" onclick={updateShallow}></lightning-button>
+</template>
+
+The component cannot change the content of the object or array. When you try to update the original object value, an error Uncaught Error: Invalid mutation: Cannot set "msg" on "[object Object]". "[object Object]" is read-only. is thrown since the child component is attempting to mutate a property on the object.
+
+// child.js
+import { LightningElement, api } from "lwc";
+
+export default class Child extends LightningElement {
+  @api obj;
+
+  get serializedObj() {
+    return JSON.stringify(this.obj);
+  }
+
+  updateOriginal() {
+    this.obj.msg += "!!!"; // throws an invalid mutation error
+  }
+
+  updateShallow() {
+    this.obj = { ...this.obj, msg: this.obj.msg + "!" };
+  }
+}
+
+Non-primitive values with references from a parent component, as shown by this.obj, are wrapped in a proxy and can't be modified. However, you can modify its content by creating a shallow copy of the non-primitive.
+
+While this.obj.msg throws an invalid mutation error, the this.obj value assignment in updateShallow() updates the {serializedObj} value on the child component only. The {serializedObj} value on the parent component isn't updated.
+
+--------------------------------------------------------------------------------------------------------------------
+Data Flow
+To prevent code complexity and unexpected side effects, data should flow in one direction, from parent to child.
+
+When a component decorates a field with @api to expose it as a public property, it should set the value only when it initializes the field. After the field is initialized, only the owner component should set the value. A component should treat values passed to it as read-only.
+
+To trigger a mutation for a property value provided by an owner component, a child component can send an event to the parent. If the parent owns the data, the parent can change the property value, which propagates down to the child component via the one-way data binding.
+
+Objects Passed to Components Are Read-Only 
+
+A non-primitive value like an object or array that's passed to a component is read-only. The component cannot change the content of the object or array. If the component tries to change the content, you see an error in the browser console: Uncaught Error: Invalid mutation: Cannot set "msg" on "[object Object]". "[object Object]" is read-only.
+
+To mutate the data, make a shallow copy of the objects you want to mutate. Let's take a look at a component that updates the value on an object.
+
+<!-- myCmp.html -->
+<template>
+  <p>{serializedObj}</p>
+  <button onclick={updateShallowCopy}>Update</button>
+</template>
+
+Create a shallow copy of the object, which copies only the top-level properties. The values of the nested objects are not copied. In this example, {"msg":"hello"} is updated to {"msg":"hello!"} when the button is clicked.
+
+// myCmp.js
+import { LightningElement, api } from "lwc";
+
+export default class extends LightningElement {
+  obj = {
+    msg: "hello",
+  };
+
+  get serializedObj() {
+    return JSON.stringify(this.obj);
+  }
+
+  updateShallowCopy() {
+    this.obj = { ...this.obj, msg: this.obj.msg + "!" };
+  }
+}
+
+You can also reassign the value of the object using this.obj = { msg: 'My new message' }. The myCmp component owns the obj field, and it can assign a new value to the field. Contrastingly, if the component attempts to change the nested value on the object with this.obj.msg = 'new value', you get an invalid mutation error in the web console.
+
+Similarly, non-primitive values with references from a parent component are wrapped in a proxy and can't be modified. See Set Properties on Child Components.
+
+To trigger a mutation for a property value provided by an owner component, a component should send an event to the owner.
+
+Use Primitive Values for Public Properties 
+
+We recommend using primitive data types for properties instead of using object data types. Slice complex data structures in a higher-level component and pass the primitive values to the component descendants.
+
+There are a few reasons that it’s better to use primitive values.
+
+Primitive values require specific @api properties that clearly define the data shape. Accepting an object or an array requires documentation to specify the shape. If an object shape changes, consumers break.
+Standard HTML elements accept only primitive values for attributes. When a standard HTML element needs a complex shape, it uses child components. For example, a table element uses tr and td elements. Only primitive types can be defined in HTML. For example, <table data={...}> isn't a value in HTML, only in Lightning Web Components.
+
+-----------------------------------------------------------------------------------------------------------------
+Call Methods on Child Components
+
+To expose a public method, decorate it with @api. Public methods are part of a component’s API. To communicate down the containment hierarchy, owner and parent components can call JavaScript methods on child components.
+
+Define a Method 
+
+This example exposes a getter for an isPlaying property, and play(), and pause() methods in a c-video-player component by adding the @api decorator to them. A parent component that contains c-video-player can read the property and call the methods. Here’s the JavaScript file.
+
+// videoPlayer.js
+import { LightningElement, api } from "lwc";
+
+export default class VideoPlayer extends LightningElement {
+  @api videoUrl;
+
+  @api
+  get isPlaying() {
+    const player = this.template.querySelector("video");
+    return player !== null && player.paused === false;
+  }
+
+  @api
+  play() {
+    const player = this.template.querySelector("video");
+    // the player might not be in the DOM just yet
+    if (player) {
+      player.play();
+    }
+  }
+
+  @api
+  pause() {
+    const player = this.template.querySelector("video");
+    if (player) {
+      // the player might not be in the DOM just yet
+      player.pause();
+    }
+  }
+
+  // private getter for computed value
+  get videoType() {
+    return "video/" + this.videoUrl.split(".").pop();
+  }
+}
+
+videoUrl is a public property. The @api decorator can be used to define a public property, and a public JavaScript method, on a component. Public properties are another part of the component’s public API.
+
+Note
+---->
+To access elements that the template owns, the code uses the template property.
+
+<!-- videoPlayer.html -->
+<template>
+  <div class="fancy-border">
+    <video autoplay>
+      <source src={videoUrl} type={videoType} />
+    </video>
+  </div>
+</template>
+
+
+<!-- methodCaller.html -->
+<template>
+  <div>
+    <c-video-player video-url={video}></c-video-player>
+    <button onclick={handlePlay}>Play</button>
+    <button onclick={handlePause}>Pause</button>
+  </div>
+</template>
+
+Clicking the buttons in c-method-caller will play or pause the video in c-video-player after we wire up the handlePlay and handlePause methods in c-method-caller.
+
+Here’s the JavaScript file for c-method-caller.
+
+// methodCaller.js
+import { LightningElement } from "lwc";
+
+export default class MethodCaller extends LightningElement {
+  video = "https://www.w3schools.com/tags/movie.mp4";
+
+  handlePlay() {
+    this.template.querySelector("c-video-player").play();
+  }
+
+  handlePause() {
+    this.template.querySelector("c-video-player").pause();
+  }
+}
+
+------------------------------------------------------------------------------------------
+Return Values 
+
+To return a value from a JavaScript method, use the return statement. For example, see the isPlaying() method in c-video-player.
+
+@api get isPlaying() {
+    const player = this.template.querySelector('video');
+    return player !== null && player.paused === false;
+}
+
+------------------------------------------------------------------------------------------
+Query Selectors 
+
+The querySelector() method is a standard DOM API that returns the first element that matches the selector.
+
+If you’re iterating over an array, consider adding some other attribute to the element, like a class or data-* value, and using it to select the desired element.
+
+The querySelectorAll() method returns an array of DOM Elements.
+
+Note
+
+Don’t pass an id to a query method like querySelector. When an HTML template is rendered, id values can be transformed into globally unique values. If you use an id selector in JavaScript, it doesn’t match the transformed id.
+
+-------------------------------------------------------------------------------------------
+Spread Properties on Child Components
+
+Pass a set of properties in an object to a child component using the lwc:spread directive. lwc:spread also enables elements to accept an object that's bound as properties at runtime.
+
+The lwc:spread directive accepts one object.
+
+<!-- app.html -->
+<template>
+  <c-child lwc:spread={childProps}></c-child>
+</template>
+
+Use an object with key-value pairs, where the keys are property names.
+
+// app.js
+import { LightningElement } from "lwc";
+
+export default class extends LightningElement {
+  childProps = { name: "James Smith", country: "USA" };
+}
+
+----------------------------------------------------------------------------------
+
+In your child component, use the properties in your template.
+
+<!-- child.html -->
+<template>
+  <p>Name: {name}</p>
+  <p>Country : {country}</p>
+</template>
+
+// child.js
+import { LightningElement, api } from "lwc";
+
+export default class Child extends LightningElement {
+  @api name;
+  @api country;
+}
+--------------------------------------------------------------------------------------
+lwc:spread is always applied last, so it overrides any properties that are directly declared in the template. Only one lwc:spread instance can be used on a directive.
+
+<!-- app.html -->
+<template>
+  <c-child name="lwc" lwc:spread={childProps}></c-child>
+</template>
+
+In this example, c-child passes name as Lightning Web Components even though the parent component is passing in name="lwc". Ultimately, the child component takes the "Lightning Web Components" name.
+
+// app.js
+import { LightningElement } from "lwc";
+
+export default class extends LightningElement {
+  childProps = { name: "Lightning Web Components" };
+}
+
+-------------------------------------------------------------------------
+Use lwc:spread With an Event Handler 
+
+lwc:spread doesn't bind the component to the event handlers defined in the template. For example, you can pass in an onclick handler in the object as the property name
+
+<!-- app.html -->
+<template>
+  <c-child lwc:spread={simpleProps}></c-child>
+</template>
+
+Here, c-child passes name as LWC. When the c-child element is clicked, spreadClick() replaces name with Lightning Web Components.
+
+-------------------------------------------------------------------------------------------------
+Pass Markup into Slots
+
+Add a slot to a component’s HTML file so a parent component can pass markup into the component. A component can have zero or more slots.
+
+A slot (<slot></slot>) is a placeholder for markup that a parent component passes into a component’s body.
+
+Unnamed Slots 
+
+This example has an unnamed slot. An unnamed slot uses the <slot> element as a placeholder for any markup that a parent component passes into the body of c-slot-demo.
+
+<!-- slotDemo.html -->
+<template>
+  <h1>Add content to slot</h1>
+  <div>
+    <slot></slot>
+  </div>
+</template>
+
+Here’s the markup for a parent component that uses c-slot-demo.
+
+<!-- slotWrapper.html -->
+<template>
+  <c-slot-demo>
+    <p>content from parent</p>
+  </c-slot-demo>
+</template>
+
+When c-slot-demo is rendered, the unnamed slot is replaced with the markup passed into the body of c-slot-demo. Here’s the rendered output of c-slot-wrapper.
+
+<h1>Add content to slot</h1>
+<div>
+  <slot>
+    <p>content from parent</p>
+  </slot>
+</div>
+
+If a component has more than one unnamed slot, the markup passed into the body of the component is inserted into all the unnamed slots. However, a component usually has zero or one unnamed slot.
+
+------------------------------------------------------------------------------------------------
+Named Slots 
+
+This example component has two named slots and one unnamed slot.
+
+<!-- namedSlots.html -->
+<template>
+  <p>First Name: <slot name="firstName">Default first name</slot></p>
+  <p>Last Name: <slot name="lastName">Default last name</slot></p>
+  <p>Description: <slot>Default description</slot></p>
+</template>
+
+You can set a dynamic value for the slot attribute of an HTML element. Here, the <span> element has a slot attribute set to the variable dynamicName.
+
+<template>
+  <c-item>
+    <span slot={dynamicName}></span>
+  </c-item>
+</template>
+
+<c-named-slots>
+  <p>
+    First Name:
+    <slot name="firstName"><span slot="firstName">Willy</span></slot>
+  </p>
+  <p>
+    Last Name:
+    <slot name="lastName"><span slot="lastName">Wonka</span></slot>
+  </p>
+  <p>
+    Description:
+    <slot><span>Chocolatier</span></slot>
+  </p>
+</c-named-slots>
+
+
+----------------------------------------------------------------------------
+Access Elements Passed Via Slots 
+
+The <slot></slot> element is part of a component’s shadow tree. To access elements in its shadow tree, a component calls this.template.querySelector() and this.template.querySelectorAll().
+
+However, the DOM elements that are passed into the slot aren’t part of the component’s shadow tree. To access elements passed via slots, a component calls this.querySelector() and this.querySelectorAll().
+
+This example shows how to pass DOM elements to a child component from the child’s context. Provide the selector name, such as an element, for this.querySelector() and this.querySelectorAll().
+
+// namedSlots.js
+import { LightningElement } from "lwc";
+
+export default class NamedSlots extends LightningElement {
+  renderedCallback() {
+    this.querySelector("span"); // <span>push the green button.</span>
+    this.querySelectorAll("span"); // [<span>push the green button</span>, <span>push the red button</span>]
+  }
+}
+------------------------------------------------------------------------
+Run Code on slotchange 
+
+All <slot> elements support the slotchange event. The slotchange event fires when a direct child of a node in a <slot> element changes. For example, this occurs when new content is appended or deleted. Only <slot> elements support this event.
+
+Changes within the children of the <slot> element don’t trigger a slotchange event.
+
+In this example, the <slot> element handles the slotchange event.
+
+<!-- container.html -->
+<template>
+  <slot onslotchange={handleSlotChange}></slot>
+</template>
+
+// container.js
+handleSlotChange (e) {
+   console.log("New slotted content has been added or removed!");
+}
+
+The component c-child is passed into the slot.
+
+<c-container>
+  <c-child></c-child>
+  <template lwc:if={addOneMore}>
+    <c-child></c-child>
+  </template>
+</c-container>
+
+If the flag addOneMore is set to True, the console prints the first time the component is rendered.
+
+<!-- child.html -->
+<template>
+  <button onclick={handleClick}>Toggle Footer</button>
+  <template lwc:if={showFooter}>
+    <footer>Footer content</footer>
+  </template>
+</template>
+
+The slotchange event is not triggered even if showFooter is true and the footer element is appended.
+
+----------------------------------------------------------------------------------------------------------------
+Compose Components Using Slots Vs Data
+When creating components that contain other components, consider the lifecycle of the component’s hierarchy using the declarative approach with slots, or the data-driven approach where a child component reacts to data changes from its parent.
+
+A common pattern for building components declaratively looks like this.
+
+<c-parent>
+  <c-custom-child></c-custom-child>
+  <c-custom-child></c-custom-child>
+</c-parent>
+
+This example has a c-parent component that uses a slot element. Although convenient for the consumer, you must manage the lifecycle of the content passed through the slot element.
+
+There are several ways to manage content that’s passed into a slot.
+
+Use the slotchange event. This is the recommended approach. slotchange bubbles up through the DOM but doesn’t cross the shadow boundary, enabling the parent component that contains the slot to react to it.
+Use custom events to notify the parent component of changes to the child components, which enables you to make the methods on the component you are interacting with private. We no longer recommend this approach as we’re gradually migrating components to use native shadow, which enforces components to use the slotchange event.
+
+Use the slotchange Event with Slots ==>
+
+<lightning-button-group>
+  <lightning-button label="Refresh"></lightning-button>
+  <lightning-button label="Edit"></lightning-button>
+  <lightning-button label="Save"></lightning-button>
+</lightning-button-group>
+
+The parent lightning-button-group component contains a slot element with the onslotchange event to manage the lifecycle of content you pass in.
+
+<!-- buttonGroup.html -->
+<template>
+  <slot onslotchange={handleSlotChange}></slot>
+</template>
+
+The slotchange handler handles the updates to slotted elements when the content of the slot changes. In this case, the parent lightning-button-group component determines the CSS classes on the child lightning-button components based on the order they appear in the group—first, middle, last, or whether it’s the only button in the group.
+
+// buttonGroup.js
+handleSlotChange(event) {
+  const slot = event.target;
+  const children = slot.assignedElements() || [];
+
+  // Loop through each child and
+  // set the order value based on position in the group
+  this.updateGroupOrder(children); 
+  }
+
+
+Modify the button class using a getter.
+
+<!-- button.html -->
+<template>
+  <button class={computedButtonClass} ...>{label}</button>
+</template>
+
+Call the classSet method to dynamically add CSS classes. For more information about classSet, review src/lightning/utils/classSet.js in the lightning-base-components package.
+
+// button.js
+get computedButtonClass() {
+    return classSet('slds-button')
+    .add({
+        // Other button classes here
+        'slds-button_first': this._order === 'first',
+        'slds-button_middle': this._order === 'middle',
+        'slds-button_last': this._order === 'last'
+    })
+    .toString();
+}
+
+
+// button.js
+get computedButtonClass() {
+    return classSet('slds-button')
+    .add({
+        // Other button classes here
+        'slds-button_first': this._order === 'first',
+        'slds-button_middle': this._order === 'middle',
+        'slds-button_last': this._order === 'last'
+    })
+    .toString();
+}
+
+=============================================================================================
+
+Use the Data-Driven Approach 
+
+Using the data-driven approach, the component gets the changes in a reactive way when data changes.
+
+This example composes a child component using a data-driven approach.
+
+<template>
+  <div class="c-parent">
+    <template for:each={itemsData} for:item="itemData">
+      <c-child onclick={onItemSelect} id={itemData.id} key={itemData.id}> </c-child>
+    </template>
+  </div>
+</template>
+
+To pass in data, use a JavaScript object. The child component reacts to data changes exclusively from its parent.
+
+itemsData = [
+    {
+        label : 'custom label 1',
+        id : 'custom-id-1'
+        selected : false
+    },
+    {
+        label : 'custom label 2',
+        id : 'custom-id-2'
+        selected : false
+    }
+]
+
+A data-driven approach is recommended when you have a complex use case. An example of a base component that’s created using the data-driven approach is lightning-datatable.
+
+
+
+

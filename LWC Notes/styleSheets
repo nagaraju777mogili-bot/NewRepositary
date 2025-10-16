@@ -1,0 +1,81 @@
+Assign CSS Stylesheets to a Component =>
+
+To customize a component with one or more stylesheets, add the stylesheets static property to the LightningElement constructor. This property accepts an array of stylesheets, and its default value is an empty array. You can set the stylesheets property for light DOM and shadow DOM components.
+
+For example, to inject the header-styles.css and button-styles.css stylesheets into myComponent, configure the stylesheets static property in myComponent.js.
+
+myComponent/
+    ├── myComponent.js
+    ├── myComponent.html
+    ├── myComponent.css
+    ├── header-styles.css
+    └── button-styles.css
+
+
+    // myComponent.js
+import { LightningElement } from "lwc";
+import headerStyles from "./header-styles.css";
+import buttonStyles from "./button-styles.css";
+
+export default class Example extends LightningElement {
+  static stylesheets = [headerStyles, buttonStyles];
+}
+
+The first stylesheet that the LWC engine injects is myComponent.css, as it's implicitly associated with the component’s template. Then the engine loads all the stylesheets associated with the stylesheets property in the order that they’re listed inside the array. Based on this configuration of stylesheets, myComponent loads its stylesheets in this order: myComponent.css, header-styles.css, and button-styles.css.
+
+The LWC engine caches the stylesheets array for the lifetime of the application during the component class definition. If you modify stylesheets after the component’s code is evaluated, it won’t affect the injected stylesheets.
+
+A subclass component doesn’t automatically inherit stylesheets from a superclass component. If you want to extend stylesheets from a superclass component to a subclass component, use super.stylesheets to manually merge the superclass stylesheets with the stylesheets for the subclass component.
+
+import { LightningElement } from "lwc";
+import superclassStylesheet from "./superclass.css";
+import subclassStylesheet from "./subclass.css";
+
+class Superclass extends LightningElement {
+  static stylesheets = [superclassStylesheet];
+}
+
+class Subclass extends Superclass {
+  static stylesheets = [...super.stylesheets, subclassStylesheet];
+}
+
+-----------------------------------------------------------------------------------------------------
+Create Styling Hooks for Your Components
+------------------------------------------
+
+To expose styling hooks for your custom components, use CSS custom properties. CSS custom properties also make code easier to read and update.
+
+----------------------------------------------
+Document your component's styling hooks as part of your component's API. To change a component's style, a consumer simply sets values for the styling hooks—they don't need to know how you implemented the styles.
+
+To define a CSS custom property in a component's stylesheet, prefix the property with --. To insert the value of the property, use var().
+
+:host {
+  --important-color: red;
+}
+
+.important {
+  color: var(--important-color);
+}
+
+-------------------------------------------------------------------
+Share CSS Style Rules
+
+Create a consistent look and feel for Lightning web components using a common CSS module. Define styles in the CSS module, and import the module into the components that you want to share styles.
+
+You can import one or more CSS modules. The imported style rules apply to the template just like non-imported style rules. Lightning Web Components (LWC) supports the CSS cascade algorithm.
+
+/* myComponent.css */
+
+/* Syntax */
+@import "namespace/moduleName";
+
+/* Example */
+@import "c/cssLibrary";
+
+/* Note: Lightning web components can access modules only from the c and lightning namespaces
+under Lightning Locker. If Lightning Web Security is enabled, Lightning web components 
+can access modules from other namespaces. */
+
+Imported style rules are applied to the template just like non-imported style rules. All style rules cascade. In the myComponent.html template, the text in the <h1> tag uses the xx-large style defined in cssLibrary.css.
+

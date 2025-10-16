@@ -1,0 +1,87 @@
+Style Components with Lightning Design System 
+---------------------------------------------
+
+Salesforce Lightning Design System (SLDS) is a CSS framework that provides the look and feel of Lightning Experience. SLDS includes styles, themes, branding, and customizations for Lightning Experience. Use SLDS styles to give your custom Lightning web components a UI that is consistent with Salesforce. And best of all, SLDS just works with Lightning components running in Lightning Experience.
+
+SLDS Linter is the latest code analysis tool that helps smooth your org’s transition to SLDS 2 and future-proofs your code. SLDS Linter provides many advantages over our previous tool, SLDS Validator. SLDS Linter is easier to set up, offers increased automation, and contains a more robust library of rules reflecting the new SLDS 2 styling guidelines.
+
+Use SLDS Linter to help prepare your components for use in SLDS 2. SLDS Linter analyzes your code against SLDS 2 rules. It offers suggestions on how to improve your code and make it more future-proof. SLDS Linter can also automatically make suggested fixes to your code and apply those suggestions in bulk across your repository.
+
+Compare Salesforce Lightning Design System Versions ==>
+-------------------------------------------------------
+Salesforce Lightning Design System (SLDS) now has two versions. Salesforce Lightning Design System 2 (SLDS 2) was introduced in Spring ’25. The original SLDS is now called SLDS 1.
+
+SLDS 2 is built with a new CSS framework that separates the structure from the visual design using styling hooks. Styling hooks are CSS custom properties that enable deeper customization and theming, allowing you to create unique experiences faster.
+
+Use SLDS Linter and SLDS Validator for help finding design tokens(SLDS 1) and replacing with global styling hooks(SLDS 2) in your components.
+
+Style Components Using Lightning Design System Styling Hooks =>
+---------------------------------------------------------------
+
+Salesforce Lightning Design System (SLDS) styling hooks make it easy to customize component styling and express your brand. Use styling hooks to access CSS custom properties that are used in SLDS component blueprints and design variations. To customize an SLDS style, declare a corresponding custom property in a component’s stylesheet. You can use the custom properties to style base components and custom components.
+
+Tip
+
+To change the styling of a Lightning base component, first check to see whether the component has design variations. To change the spacing of a component, such as the alignment, padding, margin, or even its typography, check Lightning Design System utility classes. If these techniques don’t work for your use case, try SLDS styling hooks.
+
+A styling hook is a placeholder in the SLDS stylesheet. For example, you can use var(--slds-c-badge--color-background, #ecebea), to change the color value of the corresponding --slds-c-badge-color-background CSS custom property.
+
+A CSS custom property is used in an SLDS component blueprint and its design variations.
+
+
+Note
+
+Currently, SLDS 2 doesn’t support component-level styling hooks, which have the prefix --slds-c. If your custom components use component-level styling hooks, we recommend that you use only SLDS 1 themes in your org for now. If you enable the Salesforce Cosmos theme in the org, your custom component styling can be incorrect. We’re working on component-level styling hook support for SLDS 2.
+
+Component Styling Hooks Versus Global Color Styling Hooks =>
+------------------------------------------------------------
+
+Component styling hooks (--slds-c-*) enable you to update properties in a specific component. For example, to apply a thicker border to a single button, supply a value to the component hook for that button border. The change won't affect buttons in other components. 
+
+Global color styling hooks (--slds-g-*) are predefined values used globally in an app. Use global hooks to make a change across all the components you are using.
+
+Component Styling Hook Example==>
+---------------------------------
+Let’s look at a Lightning web component that implements the SLDS button blueprint with the brand variation, which turns the background color a standard Salesforce blue
+
+<!-- myButton.html -->
+<template>
+  <button class="slds-button slds-button_brand">Submit</button></div>
+</template>
+
+Don’t override SLDS classes directly, as shown in this example.
+
+/* myButton.css */
+/* Anti-pattern - Don't do this */
+.slds-button_brand {
+  background-color: purple;
+}
+
+CSS overrides are not supported because SLDS classes and base component internals can change in future releases. The overrides can become outdated and no longer work as you intended.
+
+Instead, use component styling hooks, as in the next example.
+
+To apply a different background color to the brand variation, specify the styling hooks for the corresponding CSS custom property, which is --slds-c-button-brand-color-background. To target all elements in a component with your custom styles, use the :host selector.
+
+/* myButton.css */
+:host {
+  --slds-c-button-brand-color-background: var(--slds-g-purple-30);
+  --slds-c-button-brand-color-border: var(--slds-g-purple-30);
+  /* Other CSS custom properties here */
+}
+
+Alternatively, you can scope your customizations using other selectors, such as elements or custom classes.
+
+Base components implement SLDS component blueprints and use SLDS styles. You can use component styling hooks to customize some elements of base components. For example, to customize an SLDS style on the base component lightning-button, use a --slds-c-button-* component styling hook. Set the component styling hook's value to a global styling hook for the color you want. 
+
+<!-- myBaseButton.html -->
+<template>
+  <lightning-button variant="brand" label="Submit" onclick={handleClick}></lightning-button>
+</template>
+
+/* myBaseButton.css */
+:host {
+  --slds-c-button-brand-color-background: var(--slds-g-orange-70);
+  --slds-c-button-brand-color-border: var(--slds-g-orange-70);
+  /* Other CSS custom properties here */
+}

@@ -1,0 +1,345 @@
+Declare fields in your component’s JavaScript class. Reference them in your component’s template to dynamically update content.
+
+Field and property are almost interchangeable terms. A component author declares fields in a class. An instance of the class has properties. To component consumers, fields are properties. In a Lightning web component, only fields that a component author decorates with @api are publicly available to consumers as object properties. LWC observes changes to the values of fields and properties
+
+Property and attribute are almost interchangeable terms and can be confusing. Generally speaking, in HTML we talk about attributes, and in JavaScript we talk about properties.
+
+Reactivity ==>
+--------------
+Reactivity is a system at the core of the Lightning Web Components framework. The framework observes changes to the values of fields and properties. When it observes a change, it reacts. It reevaluates all the expressions used in the template and rerenders the component, which displays the new values.
+
+Public properties in a component template are reactive. In a component's JavaScript class, If a field’s value changes, and the field is used in a template or in a getter of a property that’s used in a template, the component rerenders and displays the new value. If a field is assigned an object or an array, the framework observes some changes to the internals of the object or array, such as when you assign a new value.
+
+Public Properties
+To expose a public property, decorate a field with @api. Public properties define the API for a component. When public properties are used in a template, they're reactive. If the value of a public property used in a template changes, the component rerenders.
+
+When a component rerenders, the expressions used in the template are reevaluated and the renderedCallback() lifecycle hook executes.
+
+DOM Properties 
+
+An owner component that uses a component in its markup can access the component’s public properties via DOM properties. DOM properties are the public fields declared in a class. They’re accessible via the DOM element with dot notation. In this example, the component c-todo-item declares a public field as @api itemName, whose value is accessible via a DOM property on the instance of c-todo-item (the DOM element).
+
+// todoApp.js
+myItem = this.template.querySelector("c-todo-item").itemName;
+
+Reactivity for Fields, Objects, and Arrays ==>
+----------------------------------------------
+If a field’s value changes, and the field is used in a template or in a getter of a property that’s used in a template, the component rerenders and displays the new value. If a field is assigned an object or an array, the framework observes some changes to the internals of the object or array, such as when you assign a new value.
+
+When a component rerenders, the expressions used in the template are reevaluated and the renderedCallback() lifecycle hook executes.
+
+Reactivity for Primitives and Complex Types ==>
+-----------------------------------------------
+
+Primitive fields—like booleans, numbers, and strings—are reactive. LWC tracks field value changes in a shallow fashion. Changes are detected when a new value is assigned to the field by comparing the value identity using ===.
+
+When manipulating complex types like objects and arrays, you must create a new object and assign it to the field for the change to be detected.
+
+import { LightningElement } from "lwc";
+
+export default class ReactivityExample extends LightningElement {
+  bool = true;
+  number = 42;
+  obj = { name: "John" };
+
+  checkMutation() {
+    this.bool = false; // Mutation detected
+
+    this.number = 42; // No mutation detected: previous value is equal to the newly assigned value
+    this.number = 43; // Mutation detected
+
+    this.obj.name = "Bob"; // No mutation detect: `obj` field value is not reassigned
+    this.obj = { name: "John" }; // Mutation detected - redefining the object with the same value creates a new object
+    this.obj = { ...this.obj, title: "CEO" }; // Mutation detected
+  }
+}
+
+To deeply track mutations made to the field value for a complex object, use the @track decorator.
+
+Track Changes Inside Objects and Arrays 
+
+To observe changes to the properties of an object or to the elements of an array, decorate the field with @track.
+
+When a field is decorated with @track, Lightning Web Components tracks changes to the internal values of:
+
+Plain objects created with {}
+Arrays created with []
+The framework observes mutations made to plain objects and arrays in a recursive fashion, including nested objects, nested arrays, and a mix of objects and arrays. Cyclic references are also handled.
+
+However, the framework doesn't observe mutations made to complex objects, such as objects inheriting from Object, class instances, Date, Set, or Map.
+
+// Component rerenders.
+this.fullName = { firstName: "John", lastName: "Doe" };
+
+However, if we assign a new value to one of the object’s properties, the component doesn't rerender, because the properties aren’t observed.
+
+// Component doesn't rerender.
+this.fullName.firstName = "John";
+
+To tell the framework to observe changes to the object's properties, decorate the fullName field with @track. Now if we change either property, the component rerenders.
+
+// Component rerenders.
+@track fullName = { firstName : '', lastName : ''};
+this.fullName.firstName = 'John';
+
+Rerender an Object with New Properties 
+
+A component rerenders only if a property accessed during the previous rendering cycle is updated, even when the object is annotated with @track. This prevents the component from rerendering excessively,
+
+Consider this tracked object and a getter that prints the object’s properties.
+
+@track obj = {value1: 'Hello'};
+
+get words() {
+    return Object.entries(this.obj)
+              .map(([key, value]) => ({key, value}));
+  }
+
+  During the first render cycle, the framework records that obj.value1 is accessed. Any mutation to obj that doesn’t affect value1 is ignored since it doesn’t impact the rendered content. Therefore, a change to value1 triggers a rerendering, but adding a new property to obj or a change to value2 doesn’t trigger a rerendering.
+
+  // Component rerenders.
+setValue1(e) {
+  this.obj.value1 = 'Hello World';
+}
+
+// Component doesn’t rerender.
+setValue2(e) {
+  this.obj.value2 = 'Hello LWC';
+}
+
+To rerender your component when adding a new property, assign the object to a new object with both values.
+
+setValue2(e) {
+  this.obj = {
+    ...this.obj,
+      value2: 'Hello LWC'
+  };
+===========================================================================================
+  Observe an Array’s Elements 
+Another use case for @track is to tell the framework to observe changes to the elements of an array.
+
+If you don’t use @track, the framework observes changes that assign a new value to the field.
+
+arr = ["a", "b"];
+The component rerenders when you assign a new value to arr.
+
+// Component rerenders.
+this.arr = ["x", "y", "z"];
+
+
+However, if we update or add an element in the array, the component doesn’t rerender.
+
+// Component doesn’t rerender.
+this.arr[0] = "x";
+this.arr.push("c");
+
+To tell the framework to observe changes to the array’s elements, decorate the arr field with @track Additionally, the framework doesn’t automatically convert the array to a string for updates to the array’s elements. To return the updated string, use a getter to convert the elements of the array to a string using join().
+
+@track arr = ['a','b'];
+
+get computedArray() { return this.arr.join(','); }
+
+update() {
+  this.arr[0] = 'x';
+  this.arr.push('c');
+}
+
+======================================================================================
+Observe Complex Objects 
+
+Let’s look at a component with a field, x, of type Date. The template has a few buttons that change the internal state of x. This example highlights that new Date() creates an object, as it is not a plain JavaScript object internal state mutation will not be observed by the LWC engine, even though the code uses @track.
+
+// trackDate.js
+import { LightningElement, track } from "lwc";
+export default class TrackDate extends LightningElement {
+  @track x = new Date();
+
+  initDate() {
+    this.x = new Date();
+  }
+
+  updateDate() {
+    this.x.setHours(7); // No mutation detected
+  }
+}
+
+When you click the Init button, the change is observed and the template is rerendered. Lightning Web Components observes that x is pointing to a new Date object. However, when you click Update, the template isn’t rerendered. Lightning Web Components doesn’t observe changes to the value of the Date object.
+
+To ensure that the template is rerendered when the value changes, clone the existing date and update its value.
+
+updateDate() {
+  const cloned = new Date(this.x.getTime());
+  cloned.setHours(7);
+
+  // Assign the new date instance to rerender the component.
+  this.x = cloned;
+}
+
+
+HTML Attribute Names 
+
+HTML attributes in a template can't contain uppercase characters. Attribute names can start with:
+
+A lowercase alphabetic character
+An underscore (_)
+A dollar sign ($)
+An optional hyphen followed by an alphabetic character(-a)
+Attribute names can include duplicate underscores (__) or an underscore followed by a hyphen(_-).
+
+If you have a JavaScript property that starts with an uppercase character and you want to set it via an HTML attribute, you must use special syntax. The uppercase character of the property name is lowercased and prefixed with a hyphen, -upper. The leading hyphen tells the engine that the first alpha character in the attribute name is declared with a leading uppercase character in the JavaScript class. For example, the JavaScript property @api Upper corresponds to the HTML attribute -upper.
+
+==============================================================================================================================================
+LightningElement Class Properties
+
+LightningElement is the base class for Lightning web components.
+
+Properties that are specific to LightningElement include:
+
+constructor: The constructor for the LightningElement class.
+hostElement: Accesses the HTMLElement of the Lightning web component in shadow DOM and light DOM. See Access the Parent Element.
+Template Access
+template: The template for the Lightning web component. In light DOM components, use this instead of this.template to access the template as there's no shadow root.
+refs: Accesses DOM elements in a specified template.
+Lifecycle Callbacks
+connectedCallback
+disconnectedCallback
+render
+renderedCallback
+errorCallback
+
+
+When Lightning Web Security is enabled in the Salesforce org, setAttributeNS, setAttribute, and shadowRoot are modified by distortions.
+======================================================================================================================================
+Node 
+
+Lightning web components reflect these properties of the Node interface.
+
+childNodes, firstChild, isConnected, lastChild
+
+See Run Code When a Component Is Inserted or Removed from the DOM.
+=========================================================================================================================================
+Use Getters and Setters to Modify Data
+
+To execute logic each time a public property is set, write a custom setter.
+
+If you write a setter for a public property, you must also write a getter. Annotate either the getter or the setter with @api, but not both.
+
+To hold the property value inside the getter and setter, use a field. This example uses the _uppercaseItemName property, which is prefixed with an underscore to indicate that the property is private.
+
+// todoItem.js
+import { LightningElement, api } from "lwc";
+export default class TodoItem extends LightningElement {
+  _uppercaseItemName;
+
+  @api
+  get itemName() {
+    return this._uppercaseItemName;
+  }
+
+  set itemName(value) {
+    this._uppercaseItemName = value.toUpperCase();
+  }
+}
+===========================================================================================================================================
+
+Boolean Properties
+Boolean attributes on standard HTML Elements are set to true by adding the attribute to the element. The absence of the attribute defaults the attribute to false. Therefore, the default value of an attribute is always false. Lightning web components use the same principle for boolean properties.
+
+======================================================================
+
+Before you set a value, check if the value has already been set by the consumer.
+
+// myComponent.js
+import { LightningElement } from "lwc";
+
+export default class MyComponent extends LightningElement {
+  connectedCallback() {
+    const tabindex = this.getAttribute("tabindex");
+
+    // Set the tabindex to 0 if it hasn’t been set by the consumer.
+    if (!tabindex) {
+      this.setAttribute("tabindex", "0");
+    }
+  }
+}
+
+Setting the tabindex using this.setAttribute() results in this markup.
+
+<c-my-component tabindex="0"></c-my-component>
+
+================================================================================================
+Manage Attribute Dependencies in a Getter
+------------------------------------------
+An attribute in HTML turns into a property assignment in JavaScript. In both cases, the order of assignment is not guaranteed. To check for the existence of other attributes, use a getter.
+
+Use a getter reference in the template. Don’t use the @api getter, and don’t use an @api setter that relies on a value from another @api property.
+
+Let’s assume we have a datatable component that displays a check mark on selected rows. We have two separate attributes rows and selectedRows, which have a dependency on the other.
+
+<template>
+  <c-datatable selected-rows="1,2" rows="1,2,3,4"> </c-datatable>
+</template>
+
+Since the order in which the attributes are received isn’t guaranteed, use getters to check the dependency.
+
+export default class Datatable extends LightningElement {
+  @track state = {};
+
+  @api
+  get rows() {
+    return this.state.rows;
+  }
+
+  set rows(value) {
+    this.state.rows = value;
+
+    // Check to see if the rows have
+    // been marked as selected.
+    if (this.state.selectedRows && !this.selectedRowsSet) {
+      this.markSelectedRows();
+      this.selectedRowsSet = true;
+    }
+  }
+
+  @api
+  set selectedRows(value) {
+    this.state.selectedRows = value;
+
+    // If rows haven’t been set,
+    // then we can't mark anything
+    // as selected.
+    if (!this.state.rows) {
+      this.selectedRowsSet = false;
+      return;
+    }
+
+    this.markSelectedRows();
+  }
+
+  get selectedRows() {
+    return this.state.selectedRows;
+  }
+
+  markSelectedRows() {
+    // Mark selected rows.
+  }
+}
+
+Using getters and setters ensures that the public API contract is easily enforced. A component shouldn’t change the value of a property that’s annotated with @api.
+
+Normalize data in the setter if something depends on that value at set time, for example, to append a CSS class programmatically on an element. Return the original value in the getter. Normalization can also be done in the getter so that the template has access to a value even if the consumer doesn’t set anything.
+
+@track state = {
+    selected : false
+};
+
+privateSelected = 'false';
+
+@api
+get selected() {
+    return this.privateSelected;
+}
+set selected(value) {
+    this.privateSelected = value;
+    this.state.selected = normalizeBoolean(value)
+}

@@ -1,0 +1,51 @@
+Shadow DOM is a standard that encapsulates the internal document object model (DOM) structure of a web component. Encapsulating the DOM gives developers the ability to share a component and protect the component from being manipulated by arbitrary HTML, CSS, and JavaScript. The internal DOM structure is called the shadow tree. The shadow tree affects how you work with CSS, events, and the DOM.
+
+Since not all browsers support Shadow DOM, LWC uses a synthetic shadow polyfill for Lightning Experience and Experience Cloud. A polyfill is code that allows a feature to work in a web browser.
+
+*** Each LWC has a shadow tree attached by default. -- 
+
+shadow DOM tree is avaiable as Encapsulation.
+
+If you use LWC outside of Lightning Experience or Experience Cloud, such as in Lightning Out (beta), LWC renders in native shadow. See Compile-time Differences on the Salesforce Platform.
+
+Shadow Tree 
+
+To understand the shadow tree, let’s look at some markup. This markup contains two Lightning web components: c-todo-app and c-todo-item. The #shadow-root document fragment defines the boundary between the DOM and the shadow tree. Elements below the shadow root are in the shadow tree.
+
+<c-todo-app>
+  #shadow-root
+  <div>
+    <p>Your To Do List</p>
+  </div>
+  <c-todo-item>
+    #shadow-root
+    <div>
+      <p>Go to the store</p>
+    </div>
+  </c-todo-item>
+</c-todo-app>
+
+
+Let’s look at how to work with the shadow tree in each of these areas.
+
+CSS
+CSS styles defined in a parent component don’t leak into a child. In our example, a p style defined in the todoApp.css stylesheet doesn’t style the p element in the c-todo-item component, because the styles don’t reach into the shadow tree. See CSS.
+
+Events
+To prevent exposing a component’s internal details, if an event bubbles up and crosses the shadow boundary, some property values change to match the scope of the listener. See Event Retargeting.
+
+Access Elements
+Elements in a shadow tree aren’t accessible via traditional DOM querying methods. Code can’t use document or document.body to access the shadow tree of a Lightning web component. For example, code can’t call document.querySelector() to select nodes in a Lightning web component’s shadow tree. To access its own shadow tree, a Lightning web component calls this.template.querySelector(). 
+
+Access Slots
+A slot is a placeholder for markup that a parent component passes into a component’s body. DOM elements that are passed to a component via slots aren’t owned by the component and aren’t in the component’s shadow tree. To access DOM elements passed via slots, call this.querySelector(). The component doesn't own these elements, so you don’t use template.
+
+---------------------------------------------------------
+Lightning Locker prevents you from breaking shadow DOM encapsulation between Lightning web components by blocking these APIs. However, in Aura components version 39.0 and earlier, Lightning Locker is disabled at the component level, so an Aura component could have code that fails.
+
+These APIs aren’t restricted by Lightning Web Security (LWS). LWS prevents you from breaking shadow DOM encapsulation by enforcing a value of closed on the ShadowRoot's mode property for all components.
+
+----------------------------------------------------------
+Convert Components from Synthetic to Native Shadow DOM 
+
+To easily convert components from synthetic DOM to native shadow DOM, use the lwc-codemod tool. The tool adds the static shadowSupportMode property to a synthetic DOM component.

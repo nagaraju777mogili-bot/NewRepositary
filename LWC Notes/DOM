@@ -1,0 +1,154 @@
+Work with the DOM
+-----------------
+
+The Document Object Model (DOM) represents the HTML page so that you can work with its content, structure, and style using JavaScript or the standard DOM APIs. For example, you can access elements in a component using standard DOM APIs like querySelector() or without a selector using template refs. Although we don't recommend manipulating the DOM, some third-party JavaScript libraries require taking over the DOM.
+
+With LWC, you can create components in:
+
+Shadow DOM
+Synthetic Shadow DOM
+Light DOM
+Mixed Shadow Mode (Beta)
+
+==================================================================================================
+Access Elements the Component Owns
+To access elements rendered by a component with standard DOM APIs, use querySelector() with this.template or this. To locate elements in the DOM without a selector, use refs.
+
+Important
+
+Don’t use the window or document global properties to query for DOM elements. See DOM Access Containment. Also, we don’t recommend using JavaScript to manipulate the DOM unless you're working with a third-party library via lightning/platformResourceLoader. It's better to use the Lightning Web Components HTML directives to write declarative code.
+
+querySelector() 
+----------------
+The standard way to access elements in the DOM is to use querySelector(). To locate shadow DOM nodes, use querySelector() or querySelectorAll() on this.template. For light DOM nodes, use one of those methods on this.
+
+// shadow DOM
+this.template.querySelector("div");
+
+// light DOM
+this.querySelector("div");
+
+
+Use these methods to look for the elements that your component rendered.
+
+The order of elements is not guaranteed.
+Elements not rendered to the DOM aren’t returned in the querySelector result.
+Don’t use ID selectors with querySelector. The IDs that you define in HTML templates may be transformed into globally unique values when the template is rendered. If you use an ID selector in JavaScript, it won’t match the transformed ID.
+For light DOM components, this.querySelector() searches through elements outside of the immediate template, such as light DOM children. Use a more specific selector to narrow the scope of the method.
+If the component runs in an org with Lightning Locker enabled, be aware of a potential memory leak. If possible, the org should enable Lightning Web Security (LWS). Alternatively, consider using refs instead of querySelector.
+
+Place light DOM components within a shadow DOM component. Lightning Locker and LWS don’t support light DOM components outside shadow DOM.
+
+<!-- example.html -->
+<template>
+  <div>First <slot name="task1">Task 1</slot></div>
+  <div>Second <slot name="task2">Task 2</slot></div>
+</template>
+
+// example.js
+import { LightningElement } from "lwc";
+
+export default class Example extends LightningElement {
+  renderedCallback() {
+    this.template.querySelector("div"); // <div>First</div>
+    this.template.querySelector("span"); // null
+    this.template.querySelectorAll("div"); // [<div>First</div>, <div>Second</div>]
+  }
+}
+
+------------------------
+Refs 
+
+Refs locate DOM elements without a selector and only query elements contained in a specified template. First, add the lwc:ref directive to your element and assign it a value. To call that reference, use this.refs. In this example, the <div> element has the directive lwc:ref="myDiv", which this.refs references to access the <div> at runtime.
+
+<template>
+  <div lwc:ref="myDiv"></div>
+</template>
+
+export default class extends LightningElement {
+  renderedCallback() {
+    console.log(this.refs.myDiv);
+  }
+}
+
+Considerations 
+
+You must define the directive lwc:ref before calling this.refs. If you call this.refs for a nonexistent ref, it returns undefined. If the template contains duplicate lwc:ref directives, this.refs references the last <div>.
+
+<template>
+  <div lwc:ref="myDiv"></div>
+  <div lwc:ref="myDiv"></div>
+</template>
+
+this.refs is a plain, read-only object. Trying to add, modify, or delete properties from within its component causes a runtime error. Its key is a string, and its value is a DOM element. The syntax for this.refs is the same for referencing elements in light DOM and shadow DOM.
+
+Refs are configurable and writable, so refs defined in a component overwrite those from LightningElement.prototype.
+
+You can’t apply lwc:ref to <template> elements, or to <slot> elements in light DOM.
+
+<template lwc:render-mode="light">
+  <template lwc:if={myTemplate} lwc:ref="myTemplate"></template>
+  <!-- Not allowed -->
+</template>
+
+<template lwc:render-mode="light">
+  <slot lwc:ref="mySlot"></slot>
+  <!-- Not allowed -->
+</template>
+
+<template for:each={items} for:item="item">
+  <div key={item} lwc:ref="foo"></div>
+  <!-- Not allowed -->
+</template>
+
+Multiple Templates 
+------------------
+
+this.refs refers to the most recently rendered template in a multi-template component. When the template changes, the this.refs object will change too.
+
+import a from "./a.html";
+import b from "./b.html";
+
+export default class extends LightningElement {
+  count = 0;
+
+  render() {
+    return this.count % 2 === 0 ? a : b;
+  }
+
+  renderedCallback() {
+    console.log(this.refs);
+  }
+
+  increment() {
+    this.count++;
+  }
+}
+
+const cmp = createElement("c-component", { is: Component });
+// Logs `this.refs` for a.html
+
+cmp.increment();
+// Logs `this.refs` for b.html
+
+cmp.increment();
+// Logs `this.refs` for a.html
+
+
+To access the HTMLElement of a Lightning web component from within a callback function, use this.hostElement in your component. The hostElement property lets you retrieve a property on the HTMLElement class. You can apply it to shadow DOM or light DOM components.
+
+This example returns this.hostElement in a light DOM component.
+
+// c-light
+import { LightningElement } from "lwc";
+
+export default class extends LightningElement {
+  static renderMode = "light"; // default is 'shadow'
+
+  renderedCallback() {
+    console.log(this.hostElement); // logs <c-light>
+  }
+}
+
+In light DOM, this.template.host returns undefined. In shadow DOM, this.hostElement is interchangeable with this.template.host.
+

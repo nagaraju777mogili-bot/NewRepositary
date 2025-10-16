@@ -1,0 +1,367 @@
+Share JavaScript Code
+--------------------------
+
+To share code between components, create an ES6 module in a API module component and export the variables or functions that you want to share using standard JavaScript syntax. Each JavaScript file is subject to the file size limit.
+
+An ES6 module is a JavaScript file that explicitly exports variables or functions that other modules can use. Modules make it easier to structure your code.
+
+LWC has two patterns for sharing code:
+
+Create JavaScript files that export code in the same folder as the component importing the code. Import the code using a relative path. Other components can’t import this file directly. This approach supports structuring code within a component rather than sharing code with other components.
+Create a API module component (library), which is a component folder that contains one or more JavaScript files that export code. To import the code, other components use c/componentName syntax. Components can import code only from the main JavaScript file, which has the same name as the folder name. To share code from supplemental JavaScript files in the library, export the code from those files, then re-export it from the main JavaScript file. See the How to Access Exports in Supplemental JavaScript Files section.
+
+This example uses the first pattern. Only myComponent.js can import code from utils.js and myFunction.js.
+lwc
+	└───myComponent
+		├──myComponent.html
+		├──myComponent.js
+		├──myComponent.js-meta.xml
+		├──myFunction.js
+		└──utils.js
+
+		To import the code, use relative paths.
+
+// myComponent.js
+import { getAmount, calculateCost } from "./utils";
+import myFunction from "./myFunction";
+
+Tip
+
+A JavaScript file can export named exports or a default export. To import a named export, the code uses the specific names in {}. To import a default export, the code can use any name. In the previous example, utils.js uses named exports and myFunction.js uses a default export.
+
+This example is a API module component. The folder and one JavaScript file must have the same name. In this example, the name is mortgageUtils.
+
+lwc
+	├──mortgageUtils
+		├──mortgageUtils.js
+		└──mortgageUtils.js-meta.xml
+	└───myComponent
+		├──myComponent.html
+		├──myComponent.js
+		└──myComponent.js-meta.xml
+
+		To import the code into other components, use c/componentName syntax.
+
+// myComponent.js
+import { getTermOptions, calculateMonthlyPayment } from "c/mortgageUtils";
+
+==================================================================================
+Export Named Functions and Variables 
+
+An ES6 module can export multiple named functions or variables.
+
+// mortgage.js
+const getTermOptions = () => {
+	return [
+		{ label: "20 years", value: 20 },
+		{ label: "25 years", value: 25 },
+	];
+};
+
+const calculateMonthlyPayment = (principal, years, rate) => {
+	// Your calculation logic here
+};
+
+export { getTermOptions, calculateMonthlyPayment };
+
+// myComponent.js
+import { getTermOptions, calculateMonthlyPayment } from "c/mortgage";
+=============================================================================================================
+
+How to Access Exports in Supplemental JavaScript Files :
+---------------------------------------------------------
+
+Supplemental JavaScript files use a different file name than the component or module name. To access an export from a supplemental JavaScript file, use export from syntax to import it and re-export it in the main JavaScript file. This syntax is a combination of import and export.
+
+For example, let’s say you want to export code from a supplemental moreUtils.js file.
+
+lwc
+	└───utils
+		├──utils.js
+		└──moreUtils.js
+
+		In moreUtils.js, export the code.
+
+// moreUtils.js
+const someFunction = () => {
+		// logic
+};
+
+const someOtherFunction = (arg1 arg2) => {
+		// logic
+};
+
+export{ someFunction, someOtherFunction };
+
+
+In utils.js, this statement exports the functions and makes them available to other Lightning web components. The functions aren’t available in utils.js unless you also import them like in the first example on this page.
+
+// utils.js
+export { someFunction, someOtherFunction } from "./moreUtils";
+
+You can also use a wildcard to export all resources from a supplemental module.
+
+// utils.js
+export * from "./moreUtils";
+
+In the component, import the functions as if they are in utils.js.
+
+// someComponent.js
+import { someFunction, someOtherFunction } from "c/utils";
+
+============================================================================================================
+Use Third-Party JavaScript Libraries
+
+Download the library from the third-party library's site.
+
+Upload the library to your Salesforce organization as a static resource, which is a Lightning Web Components content security policy requirement.
+
+In a JavaScript class that extends LightningElement:
+
+Import the library by its static resource name.
+
+import RESOURCE_NAME from "@salesforce/resourceUrl/RESOURCE_NAME";
+
+For example, if you named the static resource myLib:
+
+import myLib from "@salesforce/resourceUrl/myLib";
+
+Import methods from the platformResourceLoader module.
+
+import { loadStyle, loadScript } from "lightning/platformResourceLoader";
+
+Load the library and call its functions in a then() method.
+
+loadScript(this, myLib + "/myLib.js").then(() => {
+	let result = myLib.myFunction(2, 2);
+});
+
+Important
+
+If your component runs in an org where Lightning Web Security (LWS) isn’t enabled, libraries that are used by your component must meet Lightning Locker requirements. See Determine Whether a JavaScript Library Is Locker Compliant. If the org is using Lightning Web Security (LWS), most third-party libraries work as expected without changes. However, some libraries require changes to work with LWS. See Third-Party Library Considerations for LWS
+--------------------------------------------------------------------------------------------------------------------
+DOM Manipulation with JavaScript 
+
+Using JavaScript to manipulate the DOM isn’t recommended because the Lightning Web Components engine does it more efficiently. However, there are some third-party JavaScript libraries that take over the DOM.
+
+If a call to appendChild() manipulates the DOM, styling isn’t applied to the appended element.
+
+When using these libraries in a Lightning web component, add lwc:dom="manual" to any HTML element that you want to manipulate with JavaScript. When the engine sees the directive, it preserves encapsulation.
+
+Add the lwc:dom="manual" directive to an empty native HTML element. The owner of the component calls appendChild() on that element to manually insert the DOM.
+
+<template>
+	<div lwc:dom="manual"></div>
+</template>
+
+----------------------------------------------------------------------------------------------------------
+Determine Whether a JavaScript Library Is Locker-Compliant
+
+This guide applies when an org is using Lightning Locker. If an org has enabled Lightning Web Security (LWS), most third-party JavaScript libraries work as expected without changes. However, libraries that set "use strict" explicitly require changes to work with LWS. See Third-Party Library Considerations for LWS.
+
+To determine if a third-party library is compliant with Lightning Locker, we recommend these steps.
+
+Create a small sample app that uses the library.
+
+Verify that the library loads without error and that you can call basic functionality.
+
+Use Locker Console with Locker enabled.
+
+Check for these common violations
+
+Declaring a variable that becomes global
+Strict mode disallows variables from becoming global variables. To avoid violating this rule, in the library, explicitly attach a library global to window.
+
+window.myLib = (function () {
+	return {
+		myFunction: function (a, b) {
+			return a * b;
+		},
+	};
+})();
+
+CSP violations
+Scan code for any usages of eval(), new Function(), or <script> tags.
+
+
+DOM access violations
+Libraries are blocked if they attempt to do broad scans of the DOM instead of manipulating only the elements passed to their APIs. If the library manipulates the DOM, you can add the lwc:dom="manual" directive to a native HTML element to allow it, as described in Use Third-Party JavaScript Libraries.
+
+Use of non-standard or unsupported DOM APIs
+See the APIs marked Supported and Not Supported in the Locker API Viewer.
+
+==========================================================================================================
+Call APIs from JavaScript
+
+Make calls to Salesforce APIs and third-party APIs from a Lightning web component. By default, you can’t make WebSocket connections or calls to third-party APIs from JavaScript code. To do so, add a remote site as a trusted URL (previously CSP Trusted Site).
+
+The Lightning Component framework uses Content Security Policy (CSP), which is a W3C standard, to control the source of content that can be loaded on a page. The default CSP policy doesn’t allow API calls from JavaScript code. You change the policy, and the content of the CSP header, by adding the trusted URLs.
+
+Salesforce APIs 
+
+Use Lightning Data Service (LDS) to work with data and metadata for Salesforce records. Lightning Data Service is built on top of the public User Interface API, but it only supports a subset of the API. That subset covers many of the typical use cases for working with data. You can’t make calls to Salesforce APIs other than LDS from JavaScript code.
+
+If LDS doesn’t support the object you are looking to use, or if you want to use another Salesforce API, write an Apex class.
+
+To make a call to a third-party API, you must first add the third-party URL to the Trusted URLs page in Setup. If you're fetching data from https://www.example.com/items/v1/brands, add the base URL https://www.example.com/ as a trusted URL.
+
+Use the Fetch API to make third-party API calls. For example, you can make HTTP requests from your Lightning web component with the Fetch API and then parse JSON responses with the .json() method.
+
+async getItems() {
+  const response = await fetch("http://example.com/items.json");
+  const items = await response.json();
+}
+
+async getItems() {
+  try {
+    const response = await fetch("http://example.com/items.json");
+    if (!response.ok) {
+      throw Error(response);
+    }
+    const myItems = await response.json();
+  } catch (error) {
+    console.error("There's a problem with your fetch operation:", error);
+  } finally {
+    // do something regardless of whether the operation was successful
+  }
+}
+
+Although you can call a third-party API through a trusted URL, you can’t load JavaScript resources from a third-party site, even from a trusted URL. To use a JavaScript library from a third-party site, add it to a static resource, and then add the static resource to your component. After the library is loaded from the static resource, you can use it as normal.
+
+
+===============================================================================================================================
+
+Dynamically Instantiate Components
+----------------------------------
+
+Dynamic component instantiation can help you to avoid loading large modules that you don’t always need. Also, you can instantiate a component instance when the underlying component constructor isn’t known until runtime. Dynamic import is a convenient solution to make a component more customizable. However, it isn’t always the best solution because of the runtime performance overhead it introduces, so don’t overuse it.
+
+Important
+
+To dynamically import and instantiate Lightning web components, you must enable Lightning Web Security.
+
+Configure the Dynamic Component Capability
+------------------------------------------
+
+To instantiate a dynamic component, a component's configuration file must include the lightning__dynamicComponent capability. For example:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>59.0</apiVersion>
+  <capabilities>
+    <capability>lightning__dynamicComponent</capability>
+  </capabilities>
+</LightningComponentBundle>
+
+Dynamic Component Syntax 
+
+To instantiate a component dynamically, use the <lwc:component> managed element with the lwc:is directive in a component's HTML file.
+
+Here's an HTML template that uses <lwc:component>
+
+<template>
+    <div class="container">
+        <lwc:component lwc:is={componentConstructor}></lwc:component>
+    </div>
+</template>
+
+
+<lwc:component> serves as a placeholder in the DOM that renders the specified dynamic component. You must use <lwc:component> with the lwc:is directive.
+
+The lwc:is directive provides an imported constructor at runtime to the <lwc:component> managed element. lwc:is accepts an expression that resolves to a LightningElement constructor at runtime.
+
+If the constructor is falsy, the <lwc:component> tag along with all of its children aren't rendered.
+
+If the expression value is defined but not a LightningElement constructor, an error is thrown.
+
+In the component's JavaScript file, import the custom element using the import() dynamic import syntax.
+
+import { LightningElement } from "lwc";
+export default class extends LightningElement {
+  componentConstructor;
+  // Use connectedCallback() on the dynamic component
+  // to signal when it's attached to the DOM
+  connectedCallback() {
+    import("c/concreteComponent")
+      .then(({ default: ctor }) => (this.componentConstructor = ctor))
+      .catch((err) => console.log("Error importing component"));
+  }
+}
+
+The import() call returns a promise that resolves to a LightningElement constructor. The element is then rendered instead of the lwc:component placeholder. The tag name used for the dynamic component is the value that's returned for the given constructor.
+
+Similar to a regular component, the dynamic component is instantiated and attached to the DOM. If the dynamic component's constructor changes, the existing element is removed from the DOM.
+
+In this example, the following HTML is rendered after the import completes.
+
+<div class="container">
+  <c-concrete-component></c-concrete-component>
+</div>
+
+Instead of using the then() method, you can alternatively use the async and await operators to return the component constructor.
+
+import { LightningElement } from "lwc";
+export default class App extends LightningElement {
+  componentConstructor;
+  async connectedCallback() {
+    const { default: ctor } = await import("c/myComponent");
+    this.componentConstructor = ctor;
+  }
+}
+
+Select a Dynamic Component 
+
+A custom element must be attached to the DOM before you can select it. To select a dynamic component, use the lwc:ref directive or use an attribute that's assigned to the component, such as a class name.
+
+<template>
+    <lwc:component lwc:is={componentConstructor}
+                   lwc:ref="myCmp">
+    </lwc:component>
+</template>
+
+To identify if a dynamic component is attached to the DOM:
+
+Use connectedCallback in the dynamic component to signal when it's attached to the DOM.
+Use renderedCallback on the parent component to detect when the dynamic component has rendered to the DOM.
+
+import { LightningElement } from "lwc";
+export default class extends LightningElement {
+  componentConstructor;
+
+  connectedCallback() {
+    import("lightning/concreteComponent")
+      .then(({ default: ctor }) => (this.componentConstructor = ctor))
+      .catch((err) => console.log("Error importing component"));
+  }
+
+  renderedCallback() {
+    // this.refs.myCmp will be available on the next rendering cycle after the constructor is set
+    if (this.refs.myCmp) {
+      // this.refs.myCmp will contain a reference to the DOM node
+      console.log(this.refs.myCmp);
+    }
+  }
+}
+
+import { LightningElement } from "lwc";
+export default class extends LightningElement {
+  componentConstructor;
+
+  connectedCallback() {
+    import("lightning/concreteComponent")
+      .then(({ default: ctor }) => (this.componentConstructor = ctor))
+      .catch((err) => console.log("Error importing component"));
+  }
+
+  renderedCallback() {
+    // this.refs.myCmp will be available on the next rendering cycle after the constructor is set
+    if (this.refs.myCmp) {
+      // this.refs.myCmp will contain a reference to the DOM node
+      console.log(this.refs.myCmp);
+    }
+  }
+}
+
+Dynamic Components in Packages 
+
+You can use dynamic components in managed packages only. Dynamic components in unlocked packages aren't supported.

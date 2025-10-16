@@ -1,0 +1,6 @@
+/* myBaseButton.css */
+:host {
+  --slds-c-button-brand-color-background: var(--slds-g-orange-70);
+  --slds-c-button-brand-color-border: var(--slds-g-orange-70);
+  /* Other CSS custom properties here */
+}

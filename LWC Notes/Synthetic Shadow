@@ -1,0 +1,23 @@
+Synthetic Shadow
+-----------------
+
+Synthetic shadow is a polyfill that mimics native shadow DOM behavior. Salesforce maintains the polyfill to support backwards compatibility for legacy browsers. Currently, Lightning Experience and Experience Builder sites use synthetic shadow by default. It's also available in LWC OSS as an import or in Lightning Web Runtime as a configuration option.
+
+Note
+
+All browsers supported by Lightning Experience provide native shadow support, so the synthetic shadow polyfill is no longer necessary. Salesforce is commited to migrating from synthetic shadow to native shadow via the use of mixed shadow mode (beta).
+
+Component Styling in Synthetic Shadow 
+---------------------------------------
+
+Component styling in synthetic shadow is generally similar to the styling in native shadow DOM. See Style Components with CSS Stylesheets.
+
+In synthetic shadow, your component styles are implemented at the global document level, but using attributes to scope the styles. LWC appends your style in the format <style> type="text/css">div[lwc-66unc5l95ad-host] { border: 1px solid red }</style> to the <head> element in the DOM. In native shadow DOM, the styles remain in your component.
+
+In synthetic shadow, a shared stylesheet at the top level of your document can style all components on a page. For example, SLDS styling is available to all components on a page in Lightning Experience without getting loaded on each component.
+
+To import your CSS via a static resource and apply the styles globally in synthetic shadow, use loadstyle from lightning/platformResourceLoader. The runtime behavior is similar to SLDS in Lightning Experience as SLDS isn't scoped to your component.
+
+To use styles that are scoped to your component, use the component's .css file or import the CSS module using @import.
+
+
