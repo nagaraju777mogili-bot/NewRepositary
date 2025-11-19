@@ -1,0 +1,625 @@
+Access Static Resources, Labels, Internationalization Properties, User IDs, and Form Factors
+
+Lightning web components can access global Salesforce values, such as labels, resources, and users.
+
+You can import these Salesforce resources from a component's JavaScript file.
+
+Static Resources
+Content Asset Files
+SVG Resources
+Labels
+Internationalization
+Current User ID
+Current Community
+Permissions
+Client Form Factor
+
+======================================================================================
+Access Static Resources
+
+Import static resources from the @salesforce/resourceUrl scoped module. Static resources can be archives (such as .zip and .jar files), images, stylesheets, JavaScript, and other files.
+
+Before you can import a static resource, create and upload the file.
+
+Creation of staticResource :
+-----------------------------
+Click Browse to navigate to a local copy of the resource that you want to upload. The maximum file size is 5 MB. An org can have up to 250 MB of static resources.
+
+Set the Cache Control for user sessions, including API and Experience Cloud user sessions:
+
+Private specifies that the static resource data cached on the Salesforce server must not be shared with other users. The static resource is stored in cache only for the current user’s session.
+
+Public specifies that the static resource data cached on the Salesforce server is shared with other users in your organization for faster load times. After it’s cached, the resource is accessible to all Internet traffic, including unauthenticated users.
+
+Import a Static Resource 
+
+Import a static resource using this syntax.
+
+import myResource from "@salesforce/resourceUrl/resourceReference";
+
+// miscStaticResource.js
+import { LightningElement } from "lwc";
+import TRAILHEAD_LOGO from "@salesforce/resourceUrl/trailhead_logo";
+import TRAILHEAD_CHARACTERS from "@salesforce/resourceUrl/trailhead_characters";
+
+export default class MiscStaticResource extends LightningElement {
+  // Expose the static resource URL for use in the template
+  trailheadLogoUrl = TRAILHEAD_LOGO;
+
+  // Expose URL of assets included inside an archive file
+  einsteinUrl = TRAILHEAD_CHARACTERS + "/images/einstein.png";
+}
+
+A static resource can be an archive file with a nested directory structure. To reference an item in an archive, concatenate a string to create the path to the item, as the example does to build einsteinUrl.
+
+To reference a resource in a template, use {property} syntax, which is the same syntax you use to reference any JavaScript property.
+
+<!-- miscStaticResource.html -->
+<template>
+  <lightning-card title="MiscStaticResource" icon-name="custom:custom19">
+    <div class="slds-m-around_medium">
+      <img src={trailheadLogoUrl} />
+      <img src={einsteinUrl} />
+    </div>
+  </lightning-card>
+</template>
+
+In a Salesforce DX project, static resources live in the /force-app/main/default/staticresources directory. You can’t create subdirectories of staticresources.
+
+Create a .resource-meta metadata file for each resource. The metadata file defines the content type of the resource.
+
+==========================================================================================================
+Access Content Asset Files
+
+Import content asset files from the @salesforce/contentAssetUrl scoped module. Convert a Salesforce file into a content asset file to use the file in custom apps and Experience Builder templates.
+
+import myContentAsset from "@salesforce/contentAssetUrl/contentAssetReference";
+
+Let’s look at some sample code.
+
+The JavaScript code imports two content asset files.
+
+// assetFileExample.js
+import { LightningElement } from "lwc";
+import SALES_WAVE_LOGO from "@salesforce/contentAssetUrl/SalesWaveLogo";
+import PARTNER_LOGOS from "@salesforce/contentAssetUrl/PartnerLogos";
+
+export default class AssetFileExample extends LightningElement {
+  // Expose the asset file URL for use in the template
+  salesWaveLogoUrl = SALES_WAVE_LOGO;
+
+  // Expose URL of assets included inside an archive file
+  goldPartnerLogoUrl = PARTNER_LOGOS + "pathinarchive=images/gold_partner.png";
+}
+
+A content asset file can be an archive file with a nested directory structure. To reference an item in an archive, concatenate a string to create the path to the item, as the example does to build goldPartnerLogoUrl. To specify the path to the content asset file in the archive, use the pathinarchive parameter.
+
+To reference a resource in a template, use {property} syntax, which is the same syntax you use to reference any JavaScript property.
+
+<!-- assetFileExample.html -->
+<template>
+  <lightning-card title="Asset File Example" icon-name="custom:custom19">
+    <div class="slds-m-around_medium">
+      <img src={salesWaveLogoUrl} />
+      <img src={goldPartnerLogoUrl} />
+    </div>
+  </lightning-card>
+</template>
+
+In a Salesforce DX project, asset files live in the /force-app/main/default/contentassets directory. You can’t create subdirectories of contentassets. Create an .asset-meta metadata file that defines the asset file.
+
+========================================================================================================
+
+Use SVG Resources
+You can add an SVG resource to your component in two ways. Add it directly to your component's HTML template. Upload the SVG resource as a static resource and import it in your component's JavaScript file.
+
+SVG (Scalable Vector Graphics) is an XML-based image format that lets you define lines, curves, shapes, and text. Here's an example of a file that contains a red rectangle, green circle, and white text that says “SVG”.
+
+<svg version="1.1" baseProfile="full" width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="red"></rect>
+    <circle cx="150" cy="100" r="80" fill="green"></circle>
+    <text x="150" y="125" font-size="60" text-anchor="middle" fill="white">SVG</text>
+</svg>
+
+------------------------------
+Add an SVG Resource Directly to an HTML Template
+
+To include an SVG resource in your HTML template, enclose it in <template> tags like any other element.
+
+<template>
+    <svg version="1.1" baseProfile="full" width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="red"></rect>
+        <circle cx="150" cy="100" r="80" fill="green"></circle>
+        <text x="150" y="125" font-size="60" text-anchor="middle" fill="white">SVG</text>
+    </svg>
+</template>
+
+----------------------------------------------------------------------------------------------
+Import an SVG Resource as a Static Resource
+
+In the SVG file, add an id attribute to the <svg> tag.
+
+<svg version="1.1" baseProfile="full" width="300" height="200" xmlns="http://www.w3.org/2000/svg" id="logo">
+    <rect width="100%" height="100%" fill="red"></rect>
+    <circle cx="150" cy="100" r="80" fill="green"></circle>
+    <text x="150" y="125" font-size="60" text-anchor="middle" fill="white">SVG</text>
+</svg>
+
+Upload the SVG resource to your org as a static resource.
+
+In your component's JavaScript file, import the static resource. Define a field that concatenates the reference to the static resource with its id.
+
+// myComponent.js
+import { LightningElement } from "lwc";
+import SVG_LOGO from "@salesforce/resourceUrl/logo";
+
+export default class myComponent extends LightningElement {
+  svgURL = `${SVG_LOGO}#logo`;
+}
+
+Reference the field in your HTML template with the SVG <use> element.
+
+<!-- myComponent.html -->
+<template>
+  <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
+    ;
+    <use href={svgURL}></use>
+  </svg>
+</template>
+
+Supported SVG Tags 
+
+Lightning web components support a restricted list of SVG tags.
+
+<svg>
+<a>
+<altglyph>
+<altglyphdef>
+<altglyphitem>
+<animatecolor>
+<animatemotion>
+<animatetransform>
+<audio>
+<canvas>
+<circle>
+<defs>
+<desc>
+<ellipse>
+<filter>
+<font>
+<g>
+<glyph>
+<glyphref>
+<hkern>
+<image>
+<line>
+<lineargradient>
+<marker>
+<mask>
+<mpath>
+<path>
+<pattern>
+<polygon>
+<polyline>
+<radialgradient>
+<rect>
+<stop>
+<switch>
+<symbol>
+<text>
+<title>
+<tref>
+<tspan>
+<video>
+<view>
+<vkern>
+<use>
+==========================================================================================================
+Access Labels
+
+Import labels from the @salesforce/label scoped module. Custom labels are text values stored in Salesforce that can be translated into any language that Salesforce supports. Use custom labels to create multilingual applications that present information (for example, help text or error messages) in a user’s native language.
+
+import labelName from "@salesforce/label/labelReference";
+
+
+// labelExample.js
+import { LightningElement } from "lwc";
+
+// Import the URL for the static resource named 'salesforceLogo'
+import SALESFORCE_LOGO from "@salesforce/resourceUrl/salesforceLogo";
+
+// Import custom labels
+import greeting from "@salesforce/label/c.greeting";
+import salesforceLogoDescription from "@salesforce/label/c.salesforceLogoDescription";
+
+export default class LabelExample extends LightningElement {
+  // Expose the static resource URL to use in the template.
+  logoUrl = SALESFORCE_LOGO;
+
+  // Expose the labels to use in the template.
+  label = {
+    greeting,
+    salesforceLogoDescription,
+  };
+}
+
+To use the labels in the template, use the same {property} syntax that you use to reference any JavaScript property.
+
+<!-- labelExample.html -->
+<template>
+  <c-page-header
+    header="Using static resources and custom labels"
+    description="This sample shows how to reference external items like static resources and custom labels"
+  ></c-page-header>
+
+  <c-card>
+    <img src={logoUrl} alt={label.salesforceLogoDescription} width="100" /><br />
+    <br />
+    {label.greeting}
+  </c-card>
+</template>
+
+In a Salesforce DX project, label files can live in any subdirectory of force-app/main/default. For example, this file named ExampleLabels.labels-meta.xml lives in force-app/main/default/mylabels.
+
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>quoteManual</fullName>
+        <value>This is a manual quote.</value>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Manual Quote</shortDescription>
+    </labels>
+    <labels>
+        <fullName>quoteAuto</fullName>
+        <value>This is an automatically generated quote.</value>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automatic Quote</shortDescription>
+    </labels>
+</CustomLabels>
+
+====================================================================================================
+Internationalization 
+
+Access Internationalization Properties
+
+Import internationalization properties from the @salesforce/i18n scoped module. LWC provides internationalization properties that you can use to adapt your components for users worldwide, across languages, currencies, and timezones.
+
+In a single currency organization, Salesforce administrators set the currency locale, default language, default locale, and default time zone for their organizations. Users can set their individual language, locale, and time zone on their personal settings pages.
+
+We recommend that you use base components like lightning-input and lightning-formatted-time as they adapt automatically to the language, locale, and time zone settings of the Salesforce org they run in. For more information, see the Component Reference.
+
+To internationalize your own components so that they also adapt, use the internationalization properties.
+
+import internationalizationPropertyName from @salesforce/i18n/internationalizationProperty
+
+For LWR sites, the lang and locale are mapped to the language configured for the site, and timeZone is determined by the browser’s timezone rather than the user’s personal settings. Additionally, currency, number.currencySymbol, and number.currencyFormat are unsupported. If the site or org language configurations are updated, you must republish the site.
+
+Internationalization Value Formatting 
+
+Values returned by an internationalization property correspond to the formatting described by the Unicode Locale Data Markup Language (LDML). For example, common.calendarData follows the Calendar Data LDML specification.
+
+Example: Format a Date Into a Localized String 
+
+Dates are formatted differently in different languages. For example, the US uses Month, Day, Year, like 2/15/19. The United Kingdom uses Day, Month, Year, like 15/2/19.
+
+To format a date according to the user’s language, import the user’s locale from the @salesforce/i18n/locale module. To format the date, use the JavaScript Internationalization API.
+
+// formatDate.js
+import { LightningElement } from "lwc";
+import LOCALE from "@salesforce/i18n/locale";
+
+export default class FormatDate extends LightningElement {
+  date = new Date(2020, 6, 7);
+  formattedDate = new Intl.DateTimeFormat(LOCALE).format(this.date);
+}
+
+<!-- formatDate.html -->
+<template> {formattedDate} </template>
+
+Alternatively, use the lightning-formatted-date-time base component for date and time formatting.
+
+Example: Format a Number Into a Localized Currency String
+
+This example uses the locale and currency properties to format a number into a localized currency string.
+
+// formatNumber.js
+import { LightningElement } from "lwc";
+import LOCALE from "@salesforce/i18n/locale";
+import CURRENCY from "@salesforce/i18n/currency";
+
+export default class FormatNumber extends LightningElement {
+  number = 123456.78;
+  formattedNumber = new Intl.NumberFormat(LOCALE, {
+    style: "currency",
+    currency: CURRENCY,
+    currencyDisplay: "symbol",
+  }).format(this.number);
+}
+
+<!-- formatNumber.html -->
+<template> {formattedNumber} </template>
+
+Set HTML Attributes 
+
+To bind internationalization properties to HTML attributes, store them as private properties in your component's JavaScript file. Here, lang determines the user's language and dir specifies the direction that the text displays in HTML.
+
+// languageExample.js
+import { LightningElement } from "lwc";
+import LANG from "@salesforce/i18n/lang";
+import DIR from "@salesforce/i18n/dir";
+
+export default class LanguageExample extends LightningElement {
+  lang = LANG;
+  dir = DIR;
+}
+
+In your HTML template, reference the values with {property}.
+
+<!-- languageExample.html -->
+<template>
+  <p lang={lang} dir={dir}><!-- Localized text in a paragraph --></p>
+</template>
+
+======================================================================================================
+Get Information About the Current User
+
+To get information about the current user, use the @salesforce/user scoped module.
+
+import property from "@salesforce/user/property";
+
+property—The supported properties are Id, which is the user’s ID, and isGuest, which is a boolean value indicating whether the user is a guest user. Use the isGuest property to check whether or not the user is authenticated in the Experience Builder site.
+
+This sample code imports the current user ID and assigns it to the userId property to provide access in the HTML template.
+
+import { LightningElement } from 'lwc';
+import Id from '@salesforce/user/Id';
+
+export default class MiscGetUserId extends LightningElement {
+    userId = Id;
+}
+
+To reference a user ID in a template, use {property} syntax, which is the same syntax you use to reference any JavaScript property.
+
+<!-- miscGetUserId -->
+<template>
+  <lightning-card title="MiscGetUserId" icon-name="custom:custom19">
+    <div class="slds-m-around_medium">
+      <p>User Id:</p>
+      {userId}
+    </div>
+  </lightning-card>
+</template>
+
+<!-- miscGetUserId -->
+<template>
+  <lightning-card title="MiscGetUserId" icon-name="custom:custom19">
+    <div class="slds-m-around_medium">
+      <p>User Id:</p>
+      {userId}
+    </div>
+  </lightning-card>
+</template>
+
+===========================================================================================
+Get Information About the Current Experience Builder Site
+
+Import information about the current Experience Builder site from the @salesforce/community and @salesforce/site scoped modules.
+
+Important
+
+If a component imports @salesforce/community or @salesforce/site, it can target only an Experience Builder page. You can’t use the component in any other Salesforce container. See Configure a Component for Experience Builder.
+
+An Experience Builder site is composed of a Network object that contains administration settings, such as email and membership configurations, and a Site object that contains domain and page setting information. Using the @salesforce/community module, you can retrieve the ID of the network part of the site, whereas the @salesforce/site module lets you retrieve the ID of the site part.
+
+@salesforce/community 
+
+Import the network ID and base path of the current Experience Builder site from @salesforce/community.
+
+import propertyName from "@salesforce/community/property";
+
+property—The supported properties are:
+
+Id—The ID of the current site. For example, import the ID to pass as a parameter to an API.
+
+basePath—The base path is the section of the site’s URL that comes after the domain. So if your site domain name is UniversalTelco.force.com and myPartnerSite was the URL value added when you created the site, the site's URL is UniversalTelco.force.com/myPartnerSite/s. In this case, myPartnerSite/s is the base path.
+
+For example, to build a link component that works across several sites, import the base path and use it to dynamically construct the full site URL.
+
+propertyName—A name that refers to the imported Experience Builder property.
+
+This sample code calls an Apex controller that returns all the feed items for the current site.
+
+// miscGetCommunityId.js
+import { LightningElement } from "lwc";
+import Id from "@salesforce/community/Id";
+import getFeedElementPageForCommunity from "@salesforce/apex/CommunityFeedController.getFeedElementPageForCommunity";
+
+export default class CommunityFeedElementPage extends LightningElement {
+  @wire(getFeedElementPageForCommunity, { networkId: "$Id" })
+  feedElementPage;
+}
+
+The Apex controller takes a community ID to ensure that the feed result is scoped to that site.
+
+// CommunityFeedController.apex
+public with sharing class CommunityFeedController {
+    @AuraEnabled(cacheable=true)
+    public static ConnectApi.FeedElementPage getFeedElementPageForCommunity(String networkId) {
+    return ConnectApi.ChatterFeeds.getFeedElementsFromFeed(networkId, ConnectApi.FeedType.UserProfile,
+        'me', 3, ConnectApi.FeedDensity.FewerUpdates, null, null,
+        ConnectApi.FeedSortOrder.LastModifiedDateDesc, ConnectApi.FeedFilter.CommunityScoped);
+    }
+}
+
+----------------------------------------------------------------------------------------------
+@salesforce/site 
+
+Import the site ID and the list of active languages of the current Experience Builder site from @salesforce/site.
+
+import propertyName from "@salesforce/site/property";
+
+property—The supported properties are:
+
+Id—The ID of the current site. For example, import the ID to pass as a parameter to an API.
+activeLanguages—The list of active languages in your Experience Builder site includes metadata on the default site language and all other active languages. You can configure a site’s languages in Experience Builder in Settings | Languages. Inactive languages are excluded from the list. The return value is an array of language objects, where each object includes the language’s label and the code, such as en-US. The array is sorted alphabetically by the label.
+propertyName—A name that refers to the imported Experience Builder property.
+
+This sample code uses activeLanguages in a language selector component.
+
+// languagePicker.js
+// Sample data: [{ code: 'en-US', label: 'English (US)' },{ code: 'fr', label: 'Françias' }]
+import activeLanguages from "@salesforce/site/activeLanguages";
+
+import { LightningElement } from "lwc";
+import currentLanguage from "@salesforce/i18n/lang";
+import basePath from "@salesforce/community/basePath";
+
+export default class LanguagePicker extends LightningElement {
+  get options() {
+    return activeLanguages.map((x) => ({ value: x.code, ...x }));
+  }
+
+  get currentValue() {
+    return currentLanguage;
+  }
+
+  handleLanguageSelect(evt) {
+    const selectedLanguageCode = evt.detail.value;
+    // locale is in base path and needs to be replaced with new locale
+    const newBasePath = this.updateLocaleInBasePath(
+      basepath,
+      currentLanguage,
+      selectedLanguageCode,
+    );
+
+    const currentUrl = window.location.pathname;
+    if (currentUrl) {
+      const restOfUrl = currentUrl.substring(basepath.length);
+      window.location.href = window.location.origin + newBasePath + restOfUrl;
+    } else {
+      // WARNING: this is a current limitation of Lightning Locker in LWR sites
+      // Locker must be disabled to reference the global window object
+      console.warn(
+        "Lightning Locker must be disabled for this language picker component to redirect",
+      );
+    }
+  }
+
+  updateLocaleInBasePath(path, oldLocale, newLocale) {
+    if (path.endsWith("/" + oldLocale)) {
+      // replace with new locale
+      return path.replace(new RegExp("/" + oldLocale + "$"), "/" + newLocale);
+    } else {
+      // since the default locale is not present in the base path,
+      // append the new locale
+      return path + "/" + newLocale;
+    }
+  }
+}
+
+The component displays a dropdown language picker using lightning-combobox.
+
+<!-- languagePicker.html -->
+<template>
+    <lightning-combobox
+        options={options}
+        value={currentValue}
+        onchange={handleLanguageSelect}
+    ></lightning-combobox>
+</template>
+
+--------------------------------------------------------------------------------------------------------
+Check Permissions
+
+Import Salesforce permissions from the @salesforce/userPermission and @salesforce/customPermission scoped modules. Customize a component’s behavior based on the permissions of the context user.
+
+To check whether a user has a permission, import a static reference to the permission and evaluate whether it’s true or undefined.
+
+import hasPermission from "@salesforce/userPermission/PermissionName";
+
+Checking for a custom permission has a similar syntax. Don't use a namespace with the permission name if you reference a custom permission from a component in the same namespace as the permission, including the default namespace.
+
+import hasPermission from "@salesforce/customPermission/PermissionName";
+
+Checking for a custom permission has a similar syntax. Don't use a namespace with the permission name if you reference a custom permission from a component in the same namespace as the permission, including the default namespace.
+
+import hasPermission from "@salesforce/customPermission/PermissionName";
+
+If the custom permission was installed from a managed package, prepend the namespace followed by __ to the permission name.
+
+// For a custom permission installed from a managed package only
+import hasPermission from "@salesforce/customPermission/namespace__PermissionName";
+
+The name of the static reference is your choice. We chose the format has{Permission} to indicate that the reference contains a boolean.
+
+This sample checks whether the current user has the ViewSetup standard permission.
+
+// app.js
+import { LightningElement } from 'lwc';
+import hasViewSetup from '@salesforce/userPermission/ViewSetup';
+
+export default class App extends LightingElement {
+    get isSetupEnabled() {
+        return !hasViewSetup;
+    }
+
+    openSetup(e) {...}
+}
+
+If the user has the permission, !hasViewSetup results in the disabled attribute evaluating to false, so the button is not disabled.
+
+<!-- app.html -->
+<template>
+  <setup-panel-group>
+    <setup-button disabled={isSetupEnabled} onclick={openSetup}></setup-button>
+  </setup-panel-group>
+</template>
+
+This sample checks whether the current user has the ViewReport custom permission installed from a managed package with the acme namespace.
+
+// app.js
+import { LightningElement } from "lwc";
+import hasViewReport from "@salesforce/customPermission/acme__ViewReport";
+
+export default class App extends LightingElement {
+  get isReportVisible() {
+    return hasViewReport;
+  }
+}
+
+If the user has the permission, the component displays the expense-report component .
+
+<!--– app.html -->
+<template>
+  <common-view></common-view>
+
+  <template lwc:if={isReportVisible}>
+    <c-expense-report></c-expense-report>
+  </template>
+</template>
+
+Tip
+
+Replace any cases where a parent Aura component references permissions dynamically with a static reference in the Lightning web component. The static reference is more efficient because it does not require a network call.
+
+====================================================================================================
+Access Client Form Factor
+
+To access the form factor of the hardware the browser is running on, import the @salesforce/client/formFactor scoped module.
+
+import formFactorPropertyName from "@salesforce/client/formFactor";
+
+formFactorPropertyName—A name that refers to the form factor of the hardware running the browser. Possible values are:
+Large—A desktop client.
+Medium—A tablet client.
+Small—A phone client.
+Pass the form factor to the getRecordCreateDefaults wire adapter to get the default layout and object information for creating a record.
+
+import { getRecordCreateDefaults } from 'lightning/uiRecordApi';
+import ACCOUNT_OBJECT from '@salesforce/schema/Account';
+import FORM_FACTOR from '@salesforce/client/formFactor';
+
+@wire(getRecordCreateDefaults, { objectApiName: ACCOUNT_OBJECT, formFactor: FORM_FACTOR})
+accountDefaults;

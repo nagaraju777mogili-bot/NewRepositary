@@ -1,0 +1,256 @@
+A lifecycle hook is a callback method that triggers at a specific phase of a component instance’s lifecycle. With LWC, you can use the following lifecycle hooks.
+
+constructor()
+connectedCallback() and disconnectedCallback()
+renderedCallback()
+errorCallback()
+
+Lightning web components have a lifecycle managed by the framework. The framework creates components, inserts them into the DOM, renders them, and removes them from the DOM. It also monitors components for property changes.
+
+This diagram shows the flow of the component lifecycle from creation through render.
+
+![alt text](image-1.png)
+
+This diagram shows what happens when a component instance is removed from the DOM.
+
+![alt text](image-2.png)
+
+constructor() :
+---------------
+
+The constructor() method fires when a component instance is created. Don’t add attributes to the host element during construction. You can add attributes to the host element in any other lifecycle hook.
+
+The constructor flows from parent to child, which means that it fires in the parent first. You can't access child elements because they don't exist yet. Properties aren’t passed yet, either. Properties are assigned to the component after construction and before the connectedCallback() hook.
+
+Constructor Considerations 
+
+These requirements from the HTML: Custom elements spec apply to the constructor().
+
+The first statement must be super() with no parameters. This call establishes the correct prototype chain and value for this. Always call super() before touching this.
+Don’t use a return statement inside the constructor body, unless it is a simple early-return (return or return this).
+Don’t use the document.write() or document.open() methods.
+Don’t inspect the element's attributes and children, because they don’t exist yet.
+Don’t inspect the element’s public properties, because they’re set after the component is created.
+
+Don’t Add Attributes to Host Element During Construction 
+
+You can add attributes to the host element during any stage of the component lifecycle other than construction.
+
+This pattern isn't recommended, because it adds an attribute to the host element in the constructor().
+
+// don't do this
+import { LightningElement } from "lwc";
+export default class Deprecated extends LightningElement {
+  constructor() {
+    super();
+    this.classList.add("new-class");
+  }
+}
+
+To add an attribute to the host element, use the connectedCallback() method instead.
+
+import { LightningElement } from "lwc";
+
+export default class New extends LightningElement {
+  connectedCallback() {
+    this.classList.add("new-class");
+  }
+}
+
+Run Code When a Component Is Inserted or Removed from the DOM
+-------------------------------------------------------------
+The connectedCallback() lifecycle hook fires when a component is inserted into the DOM. The disconnectedCallback() lifecycle hook fires when a component is removed or hidden from the DOM. Both hooks flow from parent to child. To access the host element, use this. To access elements in a component’s template, use this.template.
+
+connectedCallback() and disconnectedCallback() are standard lifecycle callbacks that follow web components standards.
+
+To check whether a component is connected to the DOM, you can use this.isConnected.
+
+connectedCallback() :
+
+Use connectedCallback() to interact with a component's environment. For example, use it to:
+
+-> Establish communication with the current document or container and coordinate behavior with the environment.
+-> Perform initialization tasks, such as fetch data, set up caches, or listen for events
+-> Subscribe and Unsubscribe from a Message Channel.
+->  Navigate to different page types, like records and list views using the lightning/navigation module.
+-> Work with third-party web components.
+
+The connectedCallback() hook is invoked with the initial properties passed to the component. If a component derives its internal state from the properties, it's better to write the logic in a setter than in connectedCallback(). For sample code, see this StackExchange post by Salesforce engineer Pierre-Marie Dartus.
+
+=================================================================================================================
+Ex : This is in fact a mistake in the LWC documentation. We are currently working on rewriting this section entirely.
+
+The connectedCallback lifecycle hook is invoked when a component is connected to the document. This callback is invoked after all the public properties are set and can be used to set the state of the component.
+
+As I see it, the original author was trying to warn about the fact that public properties can be updated after the connectedCallback is invoked. The connectedCallback is invoked only one time with the initial properties passed to the component. If a component derives its internal state from the properties, it's better to write this logic in a setter than in connectedCallback.
+
+To illustrate this better, let's create a component that renders a random dog picture given its breed. We can first define a utility method to fetch the dog image.
+
+function getPicture(breed) {
+  return fetch(`https://dog.ceo/api/breed/${breed}/images/random`)
+        .then(responce => responce.json())
+        .then(res => res.message);
+}
+
+In the component below, the getPicture method is invoked in the connectedCallback. The imageUrl property is derived from the breed public property. Since the logic is in the connectedCallback, the imageUrl will always have the value of the initial breed value. This is not ideal for our component.
+
+export default class DogImage extends LightningElement {
+  @api breed;
+  imageUrl;
+
+  connectedCallback() {
+    getPicture(this.breed).then(res => {
+      this.imageUrl = res;
+    });
+  }
+}
+
+To solve this issue, expose breed using a getter/setter pair and move the logic there. Every time the breed public property is set, the setter is invoked and a new picture is fetched.
+
+export default class DogImage extends LightningElement {
+  imageUrl;
+  _breed;
+
+  @api
+  set breed(value) {
+    if (this._breed !== value) {
+      this._breed = value;
+      
+      getPicture(value).then(res => {
+        this.imageUrl = res;
+      });
+    }
+  }
+  get breed() {
+    return this._breed;
+  }
+}
+===============================================================================================================
+
+You can’t access child elements from the callbacks because they don’t exist yet.
+
+<template>
+  <div>Some content</div>
+</template>
+
+import { LightningElement } from "lwc";
+
+export default class ConnectedCallbackExample extends LightningElement {
+  connectedCallback() {
+    // This doesn't work
+    const div = this.template.querySelector("div");
+  }
+}
+
+
+disconnectedCallback() 
+----------------------
+
+Use disconnectedCallback() to clean up work done in the connectedCallback(), like purging caches or removing event listeners.
+
+Run Code When a Component Renders
+---------------------------------
+The renderedCallback() lifecycle hook is unique to Lightning Web Components. Use it to perform logic after a component has finished the rendering phase. This hook flows from child to parent.
+
+When a component renders, the expressions used in the template are reevaluated.
+
+Rerendering Components 
+----------------------
+
+After a component is connected and rendered, any changes or mutations to its state trigger the rerendering process:
+
+The component gets marked as "dirty."
+A microtask rerender the component gets enqueued.
+
+For example, components get rerendered when a property's value changes and that property is used either directly in a component template or indirectly in the getter of a property that is used in a template. To learn more about which changes are tracked, see Reactivity.
+
+When a template is rerendered, the LWC engine attempts to reuse the existing elements. In the following cases, the engine uses a diffing algorithm to decide whether to discard an element.
+
+Elements created using the for:each directive. The decision to reuse these iteration elements depends on the key attribute. If key changes, the element may be rerendered. If key doesn’t change, the element isn’t rerendered, because the engine assumes that the iteration element didn’t change.
+
+Elements received as slot content. The engine attempts to reuse an element in a <slot>, but the diffing algorithm determines whether to evict an element and recreate it.
+
+hasRendered 
+-----------
+A component is usually rendered many times during the lifespan of an application. To use this hook to perform a one-time operation, use a boolean field like hasRendered to track whether renderedCallback() has been executed. The first time renderedCallback() executes, perform the one-time operation and set hasRendered = true. If hasRendered = true, don’t perform the operation.
+
+Event Listeners 
+
+It’s best to add event listeners declaratively in an HTML template. However, if you do need to add an event listener to a template element programmatically, do it in renderedCallback(). You don’t need to remove the listener. If a listener is added to the same element repeatedly, the browser ignores the duplicates.
+
+Considerations 
+
+Updating the state of your component in renderedCallback() can cause an infinite loop. For example:
+
+Don’t update a wire adapter configuration object property in renderedCallback(). See Understand the Wire Service.
+Don’t update a public property or field in renderedCallback(). See Reactivity.
+
+-----------------------------------------------------------------------------------------------------------------Render 
+--------
+
+Conditionally Render a Template
+
+Call the render() method to update the UI. You can call it before or after connectedCallback().
+
+It’s rare to define render() in a component. The main use case is to conditionally render a template. Define business logic to decide which template (HTML file) to use. The method must return a valid HTML template.
+
+For example, imagine that you have a component that can be rendered in two different ways but you don’t want to mix the HTML in one file. Create multiple HTML files in the component bundle. Import them both and add a condition in the render() method to return the correct template depending on the component’s state.
+
+Note
+
+The render() method is not technically a lifecycle hook. It is a protected method on the LightningElement class. A hook usually tells you that something happened, and it may or may not exist on the prototype chain. The render() method must exist on the prototype chain.
+
+--------------------------------------------------------------------------------------------------------------
+errorCallback()
+
+Handle Component Errors
+
+The errorCallback() hook is unique to Lightning Web Components. Implement it to create an error boundary component that captures errors in all the descendent components in its tree. Like a JavaScript catch{} block, errorCallback() captures errors that occur in lifecycle hooks or during an event handler declared in an HTML template. You can code the error boundary component to log stack information and render an alternative view to tell users what happened and what to do next.
+
+After you create an error boundary component, you can reuse it throughout an app. It’s up to you where to define those error boundaries. You can wrap the entire app, or every individual component. Most likely, your architecture falls somewhere in between. Think about where you’d like to tell users that something went wrong.
+
+<!-- boundary.html -->
+<template>
+  <template lwc:if={error}>
+    <error-view error={error} info={stack}></error-view>
+  </template>
+  <template lwc:else>
+    <healthy-view></healthy-view>
+  </template>
+</template>
+
+The error-view component displays the error returned by errorCallback(). Otherwise, it displays the healthy-view component. By wrapping your component inside the boundary component, any unhandled errors are still caught by the boundary component and displayed by error-view. When an error is thrown, healthy-view is unmounted and removed from the DOM.
+
+// boundary.js
+import { LightningElement } from "lwc";
+export default class Boundary extends LightningElement {
+  error;
+  stack;
+  errorCallback(error, stack) {
+    this.error = error;
+  }
+}
+
+Tip
+
+To access the host element, use this. To access elements in the component’s template, use this.template
+
+The error argument is a JavaScript native error object, and the stack argument is a string.
+
+You don’t have to use lwc:[if|elseif|else] in a template. For example, let’s say you define a single component template. If this component throws an error, the framework calls errorCallback and unmounts the component during rerender, which removes the component from the DOM.
+
+<!-- boundary.html -->
+<template>
+  <my-one-and-only-view></my-one-and-only-view>
+</template>
+
+Errors from programmatically assigned event handlers are not caught by errorCallback(). If you provide an event handler on an element such as for a button's onclick event, errorCallback() is called when the component encounters an error. However, if you assign the handler to your element via JavaScript such as by using addEventHandler, errorCallback() isn't called when the component encounters an error.
+
+
+
+
+
+
+
+
+

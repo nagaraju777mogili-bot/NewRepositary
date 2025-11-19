@@ -1,0 +1,269 @@
+Lightning base components are the building blocks that make up Lightning Experience, the Salesforce mobile app, and Experience Builder sites. They incorporate Salesforce Lightning Design System (SLDS) markup and classes, while providing optimal performance and accessibility support. Base components include visual components and API modules that speed up your app development. Use base components to build your own user interfaces and apps.
+
+Note
+
+Base components in the lightning namespace are available for both LWC and Aura components. We recommend using LWC whenever possible. Components from both frameworks can coexist and interoperate on a page. This document uses "Lightning Base Components" and "base components" interchangeably.
+
+Base Components Categories
+---------------------------
+Base components that are UI-based are built from Salesforce Lightning Design System (SLDS) design guidelines. While base components follow SLDS guidelines closely, they don't implement every guideline or every feature on a design. You can also find subtle differences in attribute or variant names across base components and their associated SLDS guidelines.
+
+Note
+
+Use base components where possible instead of creating your own component from an SLDS guideline. Using base components, you get the latest SLDS design updates automatically.
+
+Base components for LWC use the framework's capabilities for a seamless integration with Salesforce data, making it easy for you to build dynamic and interactive apps. If a base component doesn't support a feature that you see in an SLDS guideline, use the guideline to help you achieve your requirements.
+
+Base components are in the lightning namespace and follow the format lightning-component-name in HTML markup, such as lightning-button-group, for example. Base components are grouped using these categories.
+
+Actions and Menus
+Containers
+Images (Visuals)
+Input
+Forms
+Navigation
+Notifications
+Output
+Progress
+Tables and Trees
+
+Utility Modules 
+---------------------
+Utility modules provide additional functionalities and utility methods. They don't correspond to an SLDS design. To use a module in your JavaScript file, import its functions from the module.
+
+Base Component	                        Description	                               
+lightning/flowSupport	                Controls a flow navigation	45.0
+lightning/logger	                    Logs custom messages to Event Monitoring	45.0
+lightning/mediaUtils        	        Resizes and compresses image files	45.0
+lightning/messageService    	        Communicates across the DOM between Visualforce pages, Aura 
+                                        components and LWC
+lightning/navigation	                 Navigates to another page in an app, such as in Lightning Experience                               and Experience Builder sites	
+lightning/pageReferenceUtils	        Encodes and decodes default field values	48.0
+lightning/platformResourceLoader	    Imports a third-party JavaScript or CSS library from                a                                       a static resource	
+lightning/refresh	                    Refreshes component data without reloading an entire page
+lightning/userConsentCookie         	Sets cookie consent preferences
+
+
+Supported App Containers for Base Components
+Base components are designed and built to be platform-agnostic, which means they can be used across different apps - Lightning Experience, Experience Builder sites, Salesforce mobile app, and even with open-source LWC. However, many base components have dependencies on the Salesforce platform. For example:
+
+lightning-record-edit-form, lightning-record-form, and lightning-record-view-form work with Salesforce record data only. The same applies to lightning-input-field and lightning-output-field.
+API modules that implement Lightning Data Service, like lightning/uiRecordApi and lightning/uiGraphQLApi
+API modules that make calls to Salesforce APIs like lightning/platformUtilityBarApi and lightning/serviceKnowledgeApi
+
+
+Name Format 
+
+The Component Reference and the LWC Dev Guide refer to base components using:
+
+A dash-separated name, namespace-component-name, for base components that are used in HTML template markup. For example, lightning-button-group.
+
+A forward-slash-separated name, namespace/moduleName, for base components that are used as an API module and must be imported in JavaScript code. For example, lightning/toast.
+
+Some base components make calls to Salesforce APIs like UI API, Connect REST API, GraphQL API, etc. and are subject to the corresponding API end-of-life policy.
+
+To work with a base component, use its public attributes. If an attribute is marked "Reserved for internal use", don't use the attribute as it can change in a future release. See the Specification tab for a component in the Component Reference.
+
+To style a base component, first consider its available variants and utility classes before trying to override or applying a custom class. Don’t depend on the internal markup or CSS classes of a base component as they can change in future releases. See Style Components with Lightning Design System.
+
+To locate a base component in your template, use lwc:ref="uniqueId". Don't use the id global attribute as the ID value is transformed into a globally unique value when the template is rendered. Querying your element using this.refs instead of this.querySelector is more performant because the latter must scan through the DOM elements to find a match. 
+
+Namespaces 
+
+Base components are available in the lightning namespace. There are other components outside of these namespaces that are specific to a product area or app container, such as:
+
+lightningsnapin for Embedded Service Chat
+experience for Experience Builder sites
+wave for CRM Analytics.
+
+API Modules 
+
+Some base components are used as an API module and must first be imported in the JavaScript file.
+
+Some UI-based components like lightning/toast and lightning/prompt require you to pass in your configuration information to a method on the module.
+
+API modules provide service or utility methods. For example, configure the navigation behavior for your components using lightning/navigation, or communicate across the DOM using lightning/messageService.
+
+Some API modules provide wire adapters and JavaScript functions for working with Salesforce data using Lightning Data Service. For example, get record data using lightning/uiRecordApi, or work with list views using lightning/uiListsApi.
+
+<!-- c-custom-component renders like this -->
+<lightning-button class="slds-m-left_x-small">
+  <button
+    title="Submit this form"
+    type="button"
+    class="slds-button slds-button_brand"
+  >
+    Submit
+  </button>
+</lightning-button>
+
+Note
+
+You can see how a base component renders in the DOM to understand its expected behavior. But don’t rely on any internal markup or CSS classes of a base component because they can change in future releases.
+
+Base components encapsulate many functionalities while making it easy for you to customize the look-and-feel of the component. For example, while variant and label attributes are part of the lightning-button base component's specification, title, class, and onclick are HTML global attributes.
+
+In this example, the variant and label attributes and the HTML global attributes are exposed as a public property so you can provide your own values in the custom component. The base component then passes your values down to the <button> element, implementing logic such as converting the variant value to a class on the <button> element.
+
+Use a Base Component with Global Attributes
+-------------------------------------------
+As base components use many of the visual elements that come with HTML, they can use the global attributes that are common to HTML elements.
+
+Note
+
+While global attributes are common to all HTML elements, they may have no effect on some elements. Similarly, some global attributes have no effect on or don't apply to a base component.
+
+Some global attributes have no effect on or don't apply to a base component. For example, the lightning-button Specification tab lists out several global attributes - name, type, value - that are consistent with the <button> HTML element. However, global attributes such as autofocus aren't supported on lightning-button as they don't get passed down to the <button> element in the base component.
+
+Base components can use a global attribute and surface it as a public property under a different attribute name. This technique is often used if the base component is made up of several HTML elements that use the same attribute values.
+
+Let's take a look at the lightning-badge base component, which composes multiple <span> elements and an <svg> element for icon support. Based on its internal logic, lightning-badge can display text without an icon or text with an icon. So you may expect that the title global attribute for hover text applies to the icon.
+
+<!-- If you do this -->
+<lightning-badge label="Alpha" icon-name="standard:event" title="Event"></lightning-badge>
+
+However, if you apply title on lightning-badge, it applies only to the lightning-badge wrapper element, and not on the icon.
+
+<!-- You get this in the DOM -->
+<lightning-badge title="Event" class="slds-badge">
+  <span class="slds-badge__icon slds-badge__icon_left">
+    <span class="slds-icon_container slds-current-color">
+      <!--Icon markup here -->
+    </span>
+  </span>Alpha
+</lightning-badge>
+
+Handle Events on Base Components
+--------------------------------
+
+Base components come with a rich user interface, where user interactions like a mouse click or a field value change can trigger an event. Handle an event, like click or change, by appending an event handler on a base component. The event handler uses the format oneventname, such as onclick or onchange.
+
+<!-- parent.html -->
+<c-child onchildbuttonclick={handleButtonClick}></c-child>
+
+To dispatch an event from a base component with data, pass the label: this.buttonLabel data into the detail property.
+
+// child.js
+export default class Child extends LightningElement {
+  buttonLabel = "Click me";
+  handleClick() {
+    const childEvent = new CustomEvent("childbuttonclick", {
+      detail: { label: this.buttonLabel },
+    });
+    this.dispatchEvent(new CustomEvent("childEvent"));
+  }
+}
+
+In the parent component, you can get the data using the event.detail.label syntax.
+
+// parent.js
+export default class Parent extends LightningElement {
+  handleButtonClick(event) {
+    const childLabel = event.detail.label;
+  }
+}
+
+When you dispatch an event, it can propagate up through the DOM. By default, the event doesn't bubble up nor pass through the shadow boundary. Consider these guidelines when working with events.
+
+Avoid composed events when you don’t need them.
+If you do need composed events, consider stopping propagation at the intended component.
+Reduce unnecessary event propagation and unintended behaviors.
+
+-------------------------------------------------------------------------------------------------
+Base Component Composition
+As modular building blocks, base components follow several structures: composition or flat structure. Understanding the differences can be helpful as you work with base components or build your own custom components.
+
+Composition Structure 
+
+Many base components can compose other base components. We sometimes refer to this relationship as parent and child components. A common pattern for working with base components is to compose them declaratively like this.
+
+<lightning-breadcrumbs>
+    <lightning-breadcrumb label="Parent Account" href="path/to/place/1">
+    </lightning-breadcrumb>
+    <lightning-breadcrumb label="Case" href="path/to/place/2">
+    </lightning-breadcrumb>
+</lightning-breadcrumbs>
+
+Base Components That Use Composition 
+
+Here are some examples of base components that compose other base components.
+
+Parent	    Child	                                                                    Description
+lightning-accordion ->	lightning-accordion-section	-> Displays content in sections that can be expanded and collapsed
+lightning-breadcrumbs->	lightning-breadcrumb->	Displays a hierarchy path of the page you're visiting
+lightning-button-group	->lightning-button->	Displays a group of buttons
+lightning-button-menu->	lightning-menu-item->	Displays a dropdown menu with a list of action items
+lightning-layout->	lightning-layout-item->	Displays content in a responsive grid system
+lightning-progress-indicator->	lightning-progress-step->	Displays an indication on the progress of a process
+lightning-record-edit-form->	lightning-input-field->	Displays a form for record editing
+lightning-record-view-form->	lightning-output-field->	Displays record data
+lightning-tabset->	lightning-tab->	Displays content in sections that can be shown one at a time
+lightning-vertical-navigation->	lightning-vertical-navigation-section->	Displays a list of links for navigation
+
+Base component composition is made possible by using slots in the parent components. For more information
+
+Flat Structure 
+--------------
+
+Some base components, such as lightning-combobox and lightning-select, render child components internally. This presents a flatter component surface for you to work with.
+
+<lightning-select
+    label="Quantity"
+    value={value}
+    options={options}
+    onchange={handleChange}></lightning-select>
+
+    In this lightning-select example, you can use a getter to pass in the options. The component takes care of rendering the <select> and <option> tags.
+
+    import { LightningElement } from "lwc";
+export default class SelectExample extends LightningElement {
+  value = "";
+  get options() {
+    return [
+      { label: "choose one...", value: "" },
+      { label: "one", value: "1" },
+      { label: "two", value: "2" },
+      { label: "three", value: "3" },
+    ];
+  }
+  handleChange(event) {
+    this.value = event.detail.value;
+  }
+}
+
+When you compare composition and flat structures, the latter uses an attribute like options for you to pass in your configuration information.
+
+Base Components That Use A Flat Structure
+
+Base Component	Usage
+lightning-checkbox-group -->	Pass in the label and value that describe checkbox options to the options attribute.
+lightning-combobox -->	Pass in the label and value that describe a menu item to the options attribute.
+lightning-dual-listbox-->	Pass in the label and value that describe a menu item to the options attribute.
+lightning-datatable -->	Pass in the label, fieldName, and type to the columns attribute. Pass in column data to the data attribute.
+lightning-map	-->Pass in the map markers to the map-markers attribute.
+lightning-pill-container -->	Pass in the pill items to the items attribute.
+lightning-radio-group-->	Pass in the label and value that describe radio options to the options attribute.
+lightning-select-->	Pass in the label and value that describe an option to the options attribute.
+lightning-tree	--> Pass in the tree items to the items attribute.
+
+The flatter structure in a base component is made possible by using an attribute to pass in configuration information and data. For more information, 
+
+Composition and Flat Structure Differences 
+
+As you build with base components and create your own components, it's helpful to understand the use cases for composition vs flat structures.
+
+Consider composition for general use cases, such as when you want to break down complexity of code and logic
+Consider a flat structure when you render large numbers of elements through composed components
+If you end up with a heavily composed structure, consider moving the logic from child components back to a parent component. Doing so allows your parent component to inline as many of the elements, which improves performance by avoiding the rendering of more custom components where possible.
+
+Keep in mind that the number of elements, functions, and event handlers increase component size and has performance implications especially when you are working with large numbers of such components on a page. If possible, move expensive operations higher up the component tree and reduce the number of operations a leaf component handles.
+
+Additionally, consider these performance guidelines.
+
+Avoid or consolidate unnecessary DOM elements and event handlers.
+Reduce unnecessary rendering and rerendering.
+For frequently reused components, expensive operations impact performance exponentially. Here are several ways to reduce performance overhead.
+
+Avoid making deep copies of large objects.
+Avoid processing collections of records or other data.
+Avoid forced rerendering and other DOM manipulations.

@@ -1,0 +1,312 @@
+Component Accessibility
+
+Accessible software and assistive technologies enable users with disabilities to use the products you build. Develop your components so that all users can perceive, understand, navigate, and interact with them.
+
+To create accessible components:
+
+Use accessibility attributes
+Handle focus
+We recommend that you follow the WCAG Guidelines for accessibility. Alternatively, consider using a Lightning base component, which provides built-in Lightning Design System styling and accessibility. If you can't find a base component that meets your requirement, consider creating a component from an SLDS Blueprint.
+
+
+To make your components available to screen readers and other assistive technologies, use HTML attributes on your components. HTML attributes describe the UI elements that they contain. Accessibility software interprets UI elements by reading the attributes aloud.
+
+One critical piece of accessibility is the use of the label attribute. By associating labels with a control, you allow assistive technology to present it to the user and let the user identify the purpose of the control. See WCAG label techniques.
+
+Lightning base components provide built-in accessibility. When you use a base component like lightning-input and lightning-record-form, the label you provide is automatically associated with the input field.
+
+<lightning-input type="text" label="Enter some text"></lightning-input>
+
+The input field is rendered with an associated label.
+
+<!-- Generated HTML -->
+<lightning-input class="slds-form-element">
+  <label for="input-2" class="slds-form-element__label slds-no-flex">Enter some text</label>
+  <div class="slds-form-element__control slds-grow">
+    <input type="text" id="input-2" class="slds-input" />
+  </div>
+</lightning-input>
+
+When the label element cannot be used, use the title attribute to identify form controls like buttons and input fields. See WCAG Technique H65. Screen readers read title attribute values to a user. When you use a Lightning web component with a title attribute, consider specifying a value. For example, the lightning-button component has a title attribute.
+
+<!-- parent.html -->
+<template>
+  <lightning-button title="Log In" label="Log In" onclick={login}></lightning-button>
+</template>
+
+That template creates HTML output like the following for the screen reader to read out “Log In” to the user.
+
+<!-- Generated HTML -->
+<lightning-button>
+  <button title="Log In">Log In</button>
+</lightning-button> 
+
+-----------------------------------------------------------------------------------------------------------------Use an Accessibility Attribute as a Public Property
+
+When you’re creating a Lightning web component, use @api to expose a public title attribute if you want a screen reader to read a value aloud to the user.
+
+Note
+
+When you take control of an attribute by exposing it as a public property, the attribute no longer appears in the HTML output by default.
+
+To pass the value through to the rendered HTML as an attribute (to reflect the property), define a getter and setter for the property and call the setAttribute() method.
+
+You can also perform operations in the setter. Use a private property to hold the computed value.
+
+// myComponent.js
+import { LightningElement, api } from "lwc";
+
+export default class MyComponent extends LightningElement {
+  privateTitle;
+  @api
+  get title() {
+    return this.privateTitle;
+  }
+
+  set title(value) {
+    this.privateTitle = value.toUpperCase();
+    this.setAttribute("title", this.privateTitle);
+  }
+}
+
+<!-- parent.html -->
+<template>
+  <c-my-component title="Hover Over the Component to See Me"></c-my-component>
+</template>
+
+/* Generated HTML */
+<c-my-component title="HOVER OVER THE COMPONENT TO SEE ME">
+  <div>Reflecting Attributes Example</div>
+</c-my-component>
+
+----------------------------------------------------------------------------------------
+ARIA Attributes 
+
+   To provide more advanced accessibility, such as a screen reader reading out a button’s current state, use ARIA attributes. These attributes give more detailed information to the screen readers that support the ARIA standard.
+
+You can associate ARIA attributes with id attributes in your HTML template. In a component’s template file, id values must be unique so that screen readers can associate ARIA attributes such as aria-describedby, aria-details, and aria-owns with specific elements.
+
+Note
+
+When a template is rendered, id values may be transformed into globally unique values. Don’t use an id selector in CSS or JavaScript because it won’t match the transformed id. Instead, use the element's class attribute or a data-* attribute like data-id.
+
+Let’s look at some code. The aria-pressed attribute tells screen readers to say when a button is pressed. When using a lightning-button component, you write:
+
+<!-- parent.html -->
+<template>
+  <lightning-button
+    title="Log In"
+    label="Log In"
+    onclick={login}
+    aria-label="Log In"
+    aria-pressed
+  ></lightning-button>
+</template>
+
+The component defines the ARIA attributes as public properties, and uses fields to get and set the public properties.
+
+<!-- lightning-button.html -->
+<template>
+  <button
+    title="Log In"
+    label="Log In"
+    onclick={login}
+    aria-label={innerLabel}
+    aria-pressed={pressed}
+  ></button>
+</template>
+
+The component JavaScript uses the camel-case attribute mappings to get and set the values in lightning-button.js.
+
+// lightning-button.js
+import { LightningElement, api } from "lwc";
+export default class LightningButton extends LightningElement {
+  innerLabel;
+
+  @api
+  get ariaLabel() {
+    return this.innerLabel;
+  }
+
+  set ariaLabel(newValue) {
+    this.innerLabel = newValue;
+  }
+
+  pressed;
+
+  @api
+  get ariaPressed() {
+    return this.pressed;
+  }
+
+  set ariaPressed(newValue) {
+    this.pressed = newValue;
+  }
+}
+
+The generated HTML is:
+
+<lightning-button>
+  <button
+    title="Log In"
+    label="Log In"
+    onclick={login}
+    aria-label="Log In"
+    aria-pressed="true"
+  ></button>
+</lightning-button>
+
+A screen reader that supports ARIA reads the label and indicates that the button is pressed.
+
+Note
+
+ARIA attributes use camel-case in accessor functions. For example, aria-label becomes ariaLabel. The complete mapping list is defined in the
+
+Default ARIA Values 
+
+ component author may want to define default ARIA attributes on a custom component, and still allow component consumers to specify attribute values. In this case, a component author defines default ARIA values on the component’s element.
+
+ // lightning-button.js sets "Log In" as the default label
+import { LightningElement } from "lwc";
+export default class LightningButton extends LightningElement {
+  connectedCallback() {
+    this.template.querySelector("lightning-button").ariaLabel = "Log In";
+  }
+}
+
+When you use the component and supply an aria-label value, the supplied value appears.
+
+<!-- parent.html -->
+<template>
+  <lightning-button
+    title="Log In"
+    label="Submit"
+    onclick={login}
+    aria-label="Submit"
+    aria-pressed
+  ></lightning-button>
+</template>
+
+<lightning-button>
+  <button title="Log In" label="Submit" aria-label="Submit" aria-pressed="true"></button>
+</lightning-button>
+
+<!-- parent.html -->
+<template>
+  <lightning-button title="Log In" label="Log In" onclick={login}></lightning-button>
+</template>
+
+The generated HTML is:
+
+<lightning-button>
+  <button title="Log In" label="Log In" onclick={login} aria-label="Log In"></button>
+</lightning-button>
+
+----------------------------------------------------------------------------------------
+
+Static Values 
+
+What if you create a custom component and don't want the value of an attribute to change? A good example is the role attribute. You don't want a component consumer to change button to tab. A button is a button.
+
+You always want the generated HTML to have the role be button, like in this example.
+<lightning-button>
+  <div title="Log In" label="Log In" onclick={login} role="button"></div>
+</lightning-button>
+
+To prevent a consumer from changing an attribute’s value, simply return a string. This example always returns "button" for the role value.
+
+// lightning-button.js
+import { LightningElement, api } from "lwc";
+export default class LightningButton extends LightningElement {
+  set role(value) {}
+
+  @api
+  get role() {
+    return "button";
+  }
+}
+
+Link IDs and ARIA Attributes from Different Templates 
+
+IDs and ARIA attributes in the same template are linked automatically. If attributes are in different templates, you must link them manually.
+
+In native shadow DOM, you can’t link IDs and ARIA attributes between elements in separate templates.
+
+To link together two elements using IDs and ARIA attributes, use light DOM to place them in the same shadow root. See the Accessibility section in Light DOM.
+
+==========================================================================================================
+Handle Focus
+To make your components accessible to people with disabilities, program them to handle which element has focus and can receive input.
+
+Web browsers are fully navigable with the keyboard using the tab key. For accessibility purposes, users who rely on keyboard navigation need a visual cue to see which element has focus. People with low vision also use screen readers to navigate web pages. Screen readers read aloud the elements on the page, including the element that has focus. As a developer, you need to ensure that when a user tabs through a page, the browser moves focus to the next logical element.
+
+When a user tabs through a page, interactive elements like <a>, <button>, <input>, and <textarea> receive focus automatically. Elements that are not natively focusable, such as <div> or <span>, can use tabindex="0" to receive keyboard focus.
+
+Note
+
+Only 0 and -1 tabindex values are supported. Assigning tabindex="0" means that the element focuses in standard sequential keyboard navigation. Assigning it tabindex="-1" removes the element from sequential keyboard navigation. For more information, see Keyboard Accessibility.
+
+Focus Behavior During Tab Navigation 
+
+For custom components, focus skips the component container and moves to the elements inside the component.
+
+Let’s look at some code.
+
+In this example, when a user tabs, focus moves from a button element in parent to an input element in child, skipping child itself.
+
+<!-- parent.html -->
+<template>
+  <button>Button</button>
+  <c-child></c-child>
+</template>
+
+<!-- child.html -->
+<template>
+  <span
+    >Tabbing to the custom element moves focus to the input, skipping the component itself.</span
+  >
+  <br /><input type="text" />
+</template>
+
+Apply Focus on Child Component 
+
+To add focus to a custom component, use the tabindex attribute. In the parent template, we set the child component's tabindex to 0 to add the child component itself to the navigation sequence.
+
+<!-- parent.html -->
+<template>
+  <button>Button</button>
+  <c-child tabindex="0"></c-child>
+</template>
+
+<!-- child.html -->
+<template>
+  <span>Tabbing to the custom element moves focus to the whole component.</span>
+  <br /><input type="text" />
+</template>
+
+// child.js
+import { LightningElement } from "lwc";
+
+export default class Child extends LightningElement {}
+
+Delegate Focus in Custom Components 
+
+When creating custom components that contain focusable elements, you might find yourself managing tab indexes or setting focus manually on these elements. To manage focus automatically, set delegatesFocus to true.
+
+Let’s say we have a custom component with a button, which behaves like a native HTML button.
+
+<!-- coolButton.html -->
+<template>
+  <button>Focus!</button>
+</template>
+
+// coolButton.js
+import { LightningElement } from "lwc";
+
+export default class CoolButton extends LightningElement {
+  static delegatesFocus = true;
+}
+
+Note
+
+Don’t use tabindex with delegatesFocus because it throws off the focus order.
